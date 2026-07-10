@@ -4,13 +4,15 @@ import { requireUser } from "@/lib/auth";
 import { formatTime } from "@/lib/format";
 import { PageTitle } from "../ui";
 import { AutoRefresh } from "./client";
+import { ChairManager } from "./manage-client";
 
 export const metadata = { title: "Sillones — Consultorio" };
 export const dynamic = "force-dynamic";
 
 // Ocupación de sillones en tiempo real (se refresca solo cada 30 segundos).
+// El ABM (alta/baja/modificación) de sillones sólo lo puede operar el administrador.
 export default async function SillonesPage() {
-  await requireUser(["ADMIN", "RECEPTION"]);
+  const session = await requireUser(["ADMIN", "RECEPTION"]);
   const clinic = await prisma.clinic.findFirst();
   const tz = clinic?.timezone;
   const now = new Date();
@@ -35,9 +37,12 @@ export default async function SillonesPage() {
   return (
     <div>
       <AutoRefresh seconds={30} />
-      <PageTitle title="Ocupación de sillones" />
+      <PageTitle title="Sillones" />
+
+      {session.role === "ADMIN" && <AdminChairManager />}
+
       <p className="mb-4 text-sm text-neutral-500">
-        Estado actual y próximas 2 horas. Se actualiza automáticamente cada 30 segundos —
+        Ocupación actual y próximas 2 horas. Se actualiza automáticamente cada 30 segundos —
         última actualización: {formatTime(now, tz)} hs.
       </p>
 
@@ -100,5 +105,22 @@ export default async function SillonesPage() {
         })}
       </div>
     </div>
+  );
+}
+
+async function AdminChairManager() {
+  const allChairs = await prisma.chair.findMany({
+    orderBy: { name: "asc" },
+    include: { _count: { select: { appointments: true } } },
+  });
+  return (
+    <ChairManager
+      chairs={allChairs.map((c) => ({
+        id: c.id,
+        name: c.name,
+        active: c.active,
+        appointmentsCount: c._count.appointments,
+      }))}
+    />
   );
 }

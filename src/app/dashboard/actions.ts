@@ -239,6 +239,67 @@ export async function toggleTreatment(id: string, active: boolean): Promise<void
   revalidatePath("/dashboard/tratamientos");
 }
 
+// ── Sillones (solo admin) ───────────────────────────────────────────────────
+
+export async function upsertChair(formData: FormData): Promise<ActionResult> {
+  await requireUser(["ADMIN"]);
+  const id = String(formData.get("id") || "");
+  const name = String(formData.get("name") || "").trim();
+  if (!name) return { ok: false, error: "El nombre es obligatorio" };
+
+  const clinic = await prisma.clinic.findFirst();
+  if (!clinic) return { ok: false, error: "No hay consultorio configurado" };
+
+  const duplicate = await prisma.chair.findFirst({
+    where: { clinicId: clinic.id, name, ...(id ? { NOT: { id } } : {}) },
+  });
+  if (duplicate) return { ok: false, error: "Ya existe un sillón con ese nombre" };
+
+  if (id) {
+    await prisma.chair.update({ where: { id }, data: { name } });
+  } else {
+    await prisma.chair.create({ data: { name, clinicId: clinic.id } });
+  }
+  revalidatePath("/dashboard/sillones");
+  return { ok: true };
+}
+
+export async function setChairActive(id: string, active: boolean): Promise<ActionResult> {
+  await requireUser(["ADMIN"]);
+  if (!active) {
+    const pending = await prisma.appointment.count({
+      where: { chairId: id, status: { in: ["PENDING", "CONFIRMED"] }, endsAt: { gt: new Date() } },
+    });
+    if (pending > 0) {
+      return { ok: false, error: `No se puede desactivar: tiene ${pending} turno(s) pendiente(s) o confirmado(s)` };
+    }
+  }
+  await prisma.chair.update({ where: { id }, data: { active } });
+  revalidatePath("/dashboard/sillones");
+  return { ok: true };
+}
+
+export async function deleteChair(id: string): Promise<ActionResult> {
+  await requireUser(["ADMIN"]);
+
+  const totalChairs = await prisma.chair.count();
+  if (totalChairs <= 1) return { ok: false, error: "Debe existir al menos un sillón" };
+
+  const appointmentsCount = await prisma.appointment.count({ where: { chairId: id } });
+  if (appointmentsCount > 0) {
+    return { ok: false, error: "No se puede eliminar: tiene turnos asociados (histórico). Desactivalo en su lugar." };
+  }
+
+  const defaultForDentist = await prisma.dentist.count({ where: { defaultChairId: id } });
+  if (defaultForDentist > 0) {
+    return { ok: false, error: "Es el sillón por defecto de un odontólogo. Cambialo antes de eliminar." };
+  }
+
+  await prisma.chair.delete({ where: { id } });
+  revalidatePath("/dashboard/sillones");
+  return { ok: true };
+}
+
 // ── Pagos ──────────────────────────────────────────────────────────────────
 
 export async function recordManualPayment(formData: FormData): Promise<ActionResult> {
