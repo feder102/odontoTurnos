@@ -1,0 +1,247 @@
+// Sistema de turnos para consultorio odontológico
+// SQLite en desarrollo (sin enums nativos: los estados son String validados
+// con Zod en src/lib/domain.ts). Para producción cambiar provider a
+// "postgresql" — ver README, sección "Pasar a PostgreSQL".
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ── Consultorio ────────────────────────────────────────────────────────────
+
+model Clinic {
+  id        String  @id @default(cuid())
+  name      String
+  address   String
+  phone     String  @default("")
+  timezone  String  @default("America/Argentina/Buenos_Aires")
+  // Horario de atención por día: JSON [{weekday:1, open:"09:00", close:"19:00"}]
+  // weekday: 0=domingo … 6=sábado. Días ausentes = cerrado.
+  openingHours String @default("[]")
+  chairs    Chair[]
+}
+
+model Chair {
+  id           String        @id @default(cuid())
+  name         String // "Sillón 1", "Consultorio A"
+  clinic       Clinic        @relation(fields: [clinicId], references: [id])
+  clinicId     String
+  active       Boolean       @default(true)
+  dentists     Dentist[]
+  appointments Appointment[]
+}
+
+// ── Profesionales ──────────────────────────────────────────────────────────
+
+model Dentist {
+  id             String            @id @default(cuid())
+  name           String
+  // GENERAL | ORTODONCIA | ENDODONCIA | IMPLANTES | ODONTOPEDIATRIA | CIRUGIA
+  specialty      String            @default("GENERAL")
+  color          String            @default("#0ea5e9") // color en la agenda
+  active         Boolean           @default(true)
+  defaultChair   Chair?            @relation(fields: [defaultChairId], references: [id])
+  defaultChairId String?
+  schedules      DentistSchedule[]
+  appointments   Appointment[]
+  plans          TreatmentPlan[]
+  user           User?
+}
+
+// Horario propio del odontólogo (puede diferir del horario del consultorio)
+model DentistSchedule {
+  id        String  @id @default(cuid())
+  dentist   Dentist @relation(fields: [dentistId], references: [id], onDelete: Cascade)
+  dentistId String
+  weekday   Int // 0=domingo … 6=sábado
+  startTime String // "09:00"
+  endTime   String // "13:00"
+
+  @@index([dentistId, weekday])
+}
+
+// ── Pacientes ──────────────────────────────────────────────────────────────
+
+model Patient {
+  id                String          @id @default(cuid())
+  firstName         String
+  lastName          String
+  phone             String // WhatsApp, formato E.164 (+549…)
+  email             String?
+  birthDate         DateTime?
+  insuranceProvider String? // obra social / prepaga; null = particular
+  insuranceNumber   String? // número de afiliado
+  medicalNotes      String? // alergias, medicación, observaciones relevantes
+  createdAt         DateTime        @default(now())
+  appointments      Appointment[]
+  plans             TreatmentPlan[]
+  clinicalNotes     ClinicalNote[]
+  payments          Payment[]
+
+  @@index([phone])
+  @@index([email])
+}
+
+// ── Tratamientos ───────────────────────────────────────────────────────────
+
+model Treatment {
+  id                  String          @id @default(cuid())
+  name                String
+  description         String          @default("")
+  durationMin         Int // duración estimada de cada sesión
+  priceCents          Int // precio particular, en centavos
+  insurancePriceCents Int? // copago con obra social; null = no cubierto
+  multiSession        Boolean         @default(false)
+  defaultSessions     Int             @default(1) // sesiones sugeridas si multiSession
+  sessionIntervalDays Int             @default(21) // días sugeridos entre sesiones
+  depositCents        Int? // seña requerida; null = se paga completo
+  // Mensajería configurable por tratamiento (Prompt 5)
+  preparationNotes    String? // "venir en ayunas", etc. — va en el recordatorio 24hs
+  postCareNotes       String? // instrucciones post-tratamiento (extracción, endodoncia…)
+  active              Boolean         @default(true)
+  appointments        Appointment[]
+  plans               TreatmentPlan[]
+}
+
+// ── Plan de tratamiento (varias sesiones) ──────────────────────────────────
+
+model TreatmentPlan {
+  id            String        @id @default(cuid())
+  patient       Patient       @relation(fields: [patientId], references: [id])
+  patientId     String
+  treatment     Treatment     @relation(fields: [treatmentId], references: [id])
+  treatmentId   String
+  dentist       Dentist       @relation(fields: [dentistId], references: [id])
+  dentistId     String
+  totalSessions Int
+  status        String        @default("ACTIVE") // ACTIVE | COMPLETED | CANCELLED
+  // PER_SESSION: se cobra cada sesión | UPFRONT: total del plan por adelantado
+  billingMode   String        @default("PER_SESSION")
+  totalCents    Int? // precio total del plan si UPFRONT
+  createdAt     DateTime      @default(now())
+  appointments  Appointment[]
+  payments      Payment[]
+}
+
+// ── Turnos ─────────────────────────────────────────────────────────────────
+
+model Appointment {
+  id            String         @id @default(cuid())
+  patient       Patient        @relation(fields: [patientId], references: [id])
+  patientId     String
+  dentist       Dentist        @relation(fields: [dentistId], references: [id])
+  dentistId     String
+  treatment     Treatment      @relation(fields: [treatmentId], references: [id])
+  treatmentId   String
+  chair         Chair          @relation(fields: [chairId], references: [id])
+  chairId       String
+  startsAt      DateTime
+  endsAt        DateTime
+  // PENDING | CONFIRMED | CANCELLED | NO_SHOW | COMPLETED
+  status        String         @default("PENDING")
+  // UNPAID | DEPOSIT_PAID | PAID | REFUNDED | FAILED
+  paymentStatus String         @default("UNPAID")
+  // ONLINE | CASH | TRANSFER | CARD_IN_PERSON | null (sin definir)
+  paymentMethod String?
+  priceCents    Int // precio aplicado (particular o copago obra social)
+  plan          TreatmentPlan? @relation(fields: [planId], references: [id])
+  planId        String?
+  sessionNumber Int? // "sesión 2 de 4" dentro del plan
+  cancelReason  String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  clinicalNote  ClinicalNote?
+  payments      Payment[]
+
+  @@index([startsAt])
+  @@index([dentistId, startsAt])
+  @@index([chairId, startsAt])
+  @@index([patientId, startsAt])
+}
+
+// ── Ficha clínica ──────────────────────────────────────────────────────────
+
+model ClinicalNote {
+  id            String      @id @default(cuid())
+  patient       Patient     @relation(fields: [patientId], references: [id])
+  patientId     String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+  appointmentId String      @unique
+  content       String // qué se hizo
+  nextSteps     String? // próximos pasos
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([patientId, createdAt])
+}
+
+// ── Pagos ──────────────────────────────────────────────────────────────────
+
+model Payment {
+  id                    String         @id @default(cuid())
+  appointment           Appointment?   @relation(fields: [appointmentId], references: [id])
+  appointmentId         String?
+  plan                  TreatmentPlan? @relation(fields: [planId], references: [id])
+  planId                String?
+  patient               Patient        @relation(fields: [patientId], references: [id])
+  patientId             String
+  amountCents           Int
+  currency              String         @default("ars")
+  kind                  String // FULL | DEPOSIT | PLAN_TOTAL | BALANCE
+  // PENDING | PAID | FAILED | REFUNDED
+  status                String         @default("PENDING")
+  provider              String         @default("stripe") // stripe | manual
+  stripeSessionId       String?        @unique
+  stripePaymentIntentId String?
+  refundedCents         Int            @default(0)
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  @@index([patientId])
+  @@index([appointmentId])
+}
+
+// ── Usuarios del sistema ───────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         String // ADMIN | DENTIST | RECEPTION
+  dentist      Dentist? @relation(fields: [dentistId], references: [id])
+  dentistId    String?  @unique
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+}
+
+// ── Notificaciones WhatsApp (Prompt 5) ─────────────────────────────────────
+
+model MessageTemplate {
+  id      String  @id @default(cuid())
+  key     String  @unique // booking_confirmed, reminder_24h, reminder_2h, post_care, recall_6m, staff_new_booking, staff_cancelled, clinic_cancelled
+  name    String // nombre legible en el dashboard
+  body    String // plantilla con variables {{paciente}}, {{fecha}}, {{hora}}, …
+  enabled Boolean @default(true)
+}
+
+model MessageLog {
+  id            String   @id @default(cuid())
+  to            String // teléfono destino
+  templateKey   String
+  body          String // mensaje ya renderizado
+  channel       String   @default("whatsapp")
+  // SIMULATED | SENT | FAILED
+  status        String
+  error         String?
+  // referencia opcional al turno, para no duplicar recordatorios
+  appointmentId String?
+  createdAt     DateTime @default(now())
+
+  @@index([appointmentId, templateKey])
+}
