@@ -50,16 +50,24 @@ const SERVICES = [
 
 const TEAM = [
   {
-    name: "Dr. Ricardo Javier Peñate",
-    role: "Director",
-    detail: "Médico y Odontólogo. Especialista en Cirugía Oral y Maxilofacial.",
-    photo: "/clinica/penate.jpg",
+    name: "Dr. Javier Peñate",
+    role: "Médico y odontólogo · Cirujano maxilofacial",
+    photo: "/clinica/equipo-penate.jpg",
+  },
+  {
+    name: "Dra. Alejandra Alé",
+    role: "Odontóloga Ortodoncista · M.P. 988",
+    photo: "/clinica/equipo-ale.jpg",
   },
   {
     name: "Dra. Marianela Bueno",
-    role: "Ortodoncia y Ortopedia — MP 957",
-    detail: "Odontóloga y Ortodoncista.",
-    photo: "/clinica/marianela.jpg",
+    role: "Odontóloga Ortodoncista · M.P. 957",
+    photo: "/clinica/equipo-marianela.jpg",
+  },
+  {
+    name: "Dr. Héctor Herrero",
+    role: "Odontólogo · Estética dental · M.P. 1040",
+    photo: "/clinica/equipo-herrero.jpg",
   },
 ];
 
@@ -264,29 +272,20 @@ export default function Home() {
           Grandes profesionales, correctamente capacitados, para acompañarte en
           cada tratamiento.
         </p>
-        <div className="mx-auto mt-12 grid max-w-3xl gap-8 sm:grid-cols-2">
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {TEAM.map((member) => (
-            <div
+            <figure
               key={member.name}
-              className="overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-sm"
+              className="overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-sm transition hover:shadow-md"
             >
-              <div className="aspect-square overflow-hidden bg-neutral-100">
-                <Image
-                  src={member.photo}
-                  alt={member.name}
-                  width={640}
-                  height={640}
-                  className="h-full w-full object-cover"
-                />
-              </div>
-              <div className="p-6 text-center">
-                <h3 className="font-semibold">{member.name}</h3>
-                <p className="mt-1 text-sm font-medium text-amber-600">
-                  {member.role}
-                </p>
-                <p className="mt-2 text-sm text-neutral-600">{member.detail}</p>
-              </div>
-            </div>
+              <Image
+                src={member.photo}
+                alt={`${member.name} — ${member.role}`}
+                width={640}
+                height={640}
+                className="h-full w-full object-cover"
+              />
+            </figure>
           ))}
         </div>
       </section>
