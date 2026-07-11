@@ -22,6 +22,29 @@ function overlaps(aStart: number, aEnd: number, bStart: number, bEnd: number) {
   return aStart < bEnd && bStart < aEnd;
 }
 
+// Días no laborables vigentes en una fecha ("YYYY-MM-DD" en zona del consultorio).
+// Incluye feriados del consultorio (dentistId null) y ausencias de odontólogos.
+export async function getTimeOffForDate(dateStr: string) {
+  return prisma.timeOff.findMany({
+    where: { startDate: { lte: dateStr }, endDate: { gte: dateStr } },
+    select: { dentistId: true, reason: true },
+  });
+}
+
+// ¿Está bloqueada la fecha para un odontólogo? Devuelve el motivo o null.
+// Contempla feriados del consultorio y ausencias del propio odontólogo.
+export async function findDayOffConflict(params: {
+  dentistId: string;
+  dateStr: string;
+}): Promise<string | null> {
+  const blocks = await getTimeOffForDate(params.dateStr);
+  const holiday = blocks.find((b) => b.dentistId === null);
+  if (holiday) return `El consultorio no atiende ese día${holiday.reason ? ` (${holiday.reason})` : " (feriado)"}.`;
+  const off = blocks.find((b) => b.dentistId === params.dentistId);
+  if (off) return `El odontólogo no atiende ese día${off.reason ? ` (${off.reason})` : " (ausencia)"}.`;
+  return null;
+}
+
 function intersect(a: Interval[], b: Interval[]): Interval[] {
   const out: Interval[] = [];
   for (const x of a)
@@ -55,10 +78,19 @@ export async function getAvailableSlots(params: {
     .map((h) => ({ start: timeToMinutes(h.open), end: timeToMinutes(h.close) }));
   if (opening.length === 0) return [];
 
-  const dentists = await prisma.dentist.findMany({
-    where: { active: true, ...(dentistId ? { id: dentistId } : {}) },
-    include: { schedules: { where: { weekday } } },
-  });
+  // Feriados del consultorio y ausencias de odontólogos para esta fecha.
+  const timeOff = await getTimeOffForDate(dateStr);
+  if (timeOff.some((t) => t.dentistId === null)) return []; // consultorio cerrado
+  const blockedDentistIds = new Set(
+    timeOff.map((t) => t.dentistId).filter((id): id is string => id !== null)
+  );
+
+  const dentists = (
+    await prisma.dentist.findMany({
+      where: { active: true, ...(dentistId ? { id: dentistId } : {}) },
+      include: { schedules: { where: { weekday } } },
+    })
+  ).filter((d) => !blockedDentistIds.has(d.id));
 
   // Turnos del día (con margen) que ocupan odontólogo o sillón
   const dayStart = zonedToUtc(dateStr, "00:00", tz);

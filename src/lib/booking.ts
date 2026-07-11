@@ -2,7 +2,7 @@
 // Toda reserva pasa por acá: validación anti doble-reserva + notificaciones.
 
 import { prisma } from "./prisma";
-import { findConflict, getAvailableSlots } from "./availability";
+import { findConflict, findDayOffConflict, getAvailableSlots } from "./availability";
 import { priceForPatient } from "./domain";
 import { sendWhatsApp, STAFF_PHONE } from "./messaging";
 import { formatDate, formatTime, utcToZonedParts, addDaysStr } from "./format";
@@ -87,6 +87,12 @@ export async function createAppointment(params: {
   if (!patient) throw new BookingError("Paciente no encontrado.");
 
   const endsAt = new Date(params.startsAt.getTime() + treatment.durationMin * 60000);
+
+  // Feriado del consultorio o ausencia del odontólogo en esa fecha.
+  const clinicTz = (await prisma.clinic.findFirst({ select: { timezone: true } }))?.timezone;
+  const dateStr = utcToZonedParts(params.startsAt, clinicTz).dateStr;
+  const dayOff = await findDayOffConflict({ dentistId: params.dentistId, dateStr });
+  if (dayOff) throw new BookingError(dayOff);
 
   // Validación anti doble-reserva dentro de una transacción: SQLite serializa
   // escrituras, así que chequear+crear en la misma transacción evita la carrera.

@@ -50,7 +50,26 @@ model Dentist {
   schedules      DentistSchedule[]
   appointments   Appointment[]
   plans          TreatmentPlan[]
+  timeOff        TimeOff[]
   user           User?
+}
+
+// Días no laborables. Cubre dos casos según `dentistId`:
+//  · dentistId = null  → feriado del consultorio: nadie atiende ese día.
+//  · dentistId con valor → ausencia del odontólogo (vacaciones, franco, licencia).
+// El rango [startDate, endDate] es inclusivo y se guarda como "YYYY-MM-DD" en la
+// zona del consultorio (comparación textual segura, sin corrimientos de zona).
+model TimeOff {
+  id        String   @id @default(cuid())
+  dentist   Dentist? @relation(fields: [dentistId], references: [id], onDelete: Cascade)
+  dentistId String?
+  startDate String // "YYYY-MM-DD" inclusive
+  endDate   String // "YYYY-MM-DD" inclusive
+  reason    String   @default("") // "Feriado nacional", "Vacaciones", …
+  createdAt DateTime @default(now())
+
+  @@index([dentistId])
+  @@index([startDate, endDate])
 }
 
 // Horario propio del odontólogo (puede diferir del horario del consultorio)
