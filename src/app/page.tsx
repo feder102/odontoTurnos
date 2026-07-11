@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -7,7 +8,7 @@ export const metadata: Metadata = {
     "Cirugía oral y maxilofacial, implantes, ortodoncia y estética dental en San Juan. Reservá tu turno online.",
 };
 
-// Información institucional tomada de instagram.com/maxilofacialsanjuan
+// Información e imágenes tomadas de instagram.com/maxilofacialsanjuan
 const CLINIC = {
   name: "Maxilofacial San Juan",
   tagline: "Medicina de Alta Complejidad",
@@ -37,7 +38,7 @@ const SERVICES = [
     icon: "😁",
     title: "Ortodoncia y Ortopedia",
     description:
-      "Tratamientos oportunos y predecibles a cargo de la Dra. Marianela Bueno. La consulta temprana es clave para mejores resultados.",
+      "Tu tratamiento en manos de especialistas. La consulta temprana es clave para lograr resultados oportunos y predecibles.",
   },
   {
     icon: "✨",
@@ -51,13 +52,14 @@ const TEAM = [
   {
     name: "Dr. Ricardo Javier Peñate",
     role: "Director",
-    detail:
-      "Médico y Odontólogo. Especialista en Cirugía Oral y Maxilofacial.",
+    detail: "Médico y Odontólogo. Especialista en Cirugía Oral y Maxilofacial.",
+    photo: "/clinica/penate.jpg",
   },
   {
     name: "Dra. Marianela Bueno",
     role: "Ortodoncia y Ortopedia — MP 957",
     detail: "Odontóloga y Ortodoncista.",
+    photo: "/clinica/marianela.jpg",
   },
 ];
 
@@ -71,67 +73,97 @@ function WhatsAppIcon({ className }: { className?: string }) {
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-white text-neutral-900">
       {/* Header */}
       <header className="sticky top-0 z-20 border-b border-neutral-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-2xl">🦷</span>
-            <span className="text-lg font-bold tracking-tight text-sky-900">
-              {CLINIC.name}
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3">
+          <Link href="/" className="flex items-center gap-2.5">
+            <Image
+              src="/clinica/logo.jpg"
+              alt="Maxilofacial San Juan"
+              width={44}
+              height={44}
+              className="h-10 w-10 rounded-lg object-cover"
+              priority
+            />
+            <span className="text-base font-bold leading-tight tracking-tight sm:text-lg">
+              Maxilofacial{" "}
+              <span className="font-normal text-neutral-500">San Juan</span>
             </span>
           </Link>
-          <nav className="hidden items-center gap-6 text-sm font-medium text-neutral-600 md:flex">
-            <a href="#servicios" className="transition hover:text-sky-700">
+          <nav className="hidden items-center gap-6 text-sm font-medium text-neutral-600 lg:flex">
+            <a href="#servicios" className="transition hover:text-neutral-900">
               Servicios
             </a>
-            <a href="#profesionales" className="transition hover:text-sky-700">
-              Profesionales
+            <a href="#equipo" className="transition hover:text-neutral-900">
+              Equipo
             </a>
-            <a href="#contacto" className="transition hover:text-sky-700">
+            <a href="#contacto" className="transition hover:text-neutral-900">
               Contacto
             </a>
           </nav>
-          <Link
-            href="/reservar"
-            className="rounded-full bg-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700"
-          >
-            Turnos online
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/login"
+              className="hidden rounded-full border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 sm:inline-block"
+            >
+              Acceso profesionales
+            </Link>
+            <Link
+              href="/reservar"
+              className="rounded-full bg-amber-400 px-5 py-2 text-sm font-bold text-neutral-900 shadow-sm transition hover:bg-amber-300"
+            >
+              Turnos online
+            </Link>
+          </div>
         </div>
       </header>
 
       {/* Hero */}
-      <section className="bg-gradient-to-b from-sky-50 to-white">
-        <div className="mx-auto max-w-6xl px-6 py-20 text-center md:py-28">
-          <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-sky-600">
-            {CLINIC.tagline}
-          </p>
-          <h1 className="mx-auto max-w-3xl text-4xl font-bold tracking-tight text-neutral-900 md:text-6xl">
-            Tu nueva agenda de{" "}
-            <span className="text-sky-600">turnos online</span>
-          </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-neutral-600">
-            Cirugía oral y maxilofacial · Implantes · Ortodoncia · Estética
-            dental. No pierdas tiempo llamando: autogestioná tu turno, 24/7,
-            en pocos clics.
-          </p>
-          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Link
-              href="/reservar"
-              className="w-full rounded-full bg-sky-600 px-8 py-4 text-lg font-bold text-white shadow-lg shadow-sky-600/20 transition hover:bg-sky-700 sm:w-auto"
-            >
-              ¡Quiero mi turno!
-            </Link>
-            <a
-              href={CLINIC.whatsapp}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex w-full items-center justify-center gap-2 rounded-full border border-emerald-500 px-8 py-4 text-lg font-semibold text-emerald-600 transition hover:bg-emerald-50 sm:w-auto"
-            >
-              <WhatsAppIcon className="h-5 w-5" />
-              Consultar por WhatsApp
-            </a>
+      <section className="bg-gradient-to-b from-amber-50 to-white">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 px-6 py-16 md:grid-cols-2 md:py-24">
+          <div className="text-center md:text-left">
+            <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-amber-600">
+              {CLINIC.tagline}
+            </p>
+            <h1 className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl">
+              Tu nueva agenda de{" "}
+              <span className="text-amber-500">turnos online</span>
+            </h1>
+            <p className="mx-auto mt-6 max-w-xl text-lg text-neutral-600 md:mx-0">
+              Cirugía oral y maxilofacial · Implantes · Ortodoncia · Estética
+              dental. No pierdas tiempo llamando: autogestioná tu turno, 24/7,
+              en pocos clics.
+            </p>
+            <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row md:items-start">
+              <Link
+                href="/reservar"
+                className="w-full rounded-full bg-amber-400 px-8 py-4 text-lg font-bold text-neutral-900 shadow-lg shadow-amber-400/30 transition hover:bg-amber-300 sm:w-auto"
+              >
+                ¡Quiero mi turno!
+              </Link>
+              <a
+                href={CLINIC.whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center justify-center gap-2 rounded-full border border-emerald-500 px-8 py-4 text-lg font-semibold text-emerald-600 transition hover:bg-emerald-50 sm:w-auto"
+              >
+                <WhatsAppIcon className="h-5 w-5" />
+                WhatsApp
+              </a>
+            </div>
+          </div>
+          <div className="relative">
+            <div className="overflow-hidden rounded-3xl shadow-xl ring-1 ring-neutral-200">
+              <Image
+                src="/clinica/implantes.jpg"
+                alt="Atención en Maxilofacial San Juan con tecnología de punta"
+                width={640}
+                height={640}
+                className="h-full w-full object-cover"
+                priority
+              />
+            </div>
           </div>
         </div>
       </section>
@@ -140,25 +172,19 @@ export default function Home() {
       <section className="border-y border-neutral-100 bg-neutral-50">
         <div className="mx-auto grid max-w-6xl gap-6 px-6 py-10 text-center sm:grid-cols-3">
           <div>
-            <p className="font-semibold text-neutral-900">
-              Equipos de última generación
-            </p>
+            <p className="font-semibold">Equipos de última generación</p>
             <p className="mt-1 text-sm text-neutral-500">
               Tecnología de punta al servicio de tu salud
             </p>
           </div>
           <div>
-            <p className="font-semibold text-neutral-900">
-              Turnos online 24/7
-            </p>
+            <p className="font-semibold">Turnos online 24/7</p>
             <p className="mt-1 text-sm text-neutral-500">
               Reservá desde la compu o el celu, sin esperas
             </p>
           </div>
           <div>
-            <p className="font-semibold text-neutral-900">
-              Atención personalizada
-            </p>
+            <p className="font-semibold">Atención personalizada</p>
             <p className="mt-1 text-sm text-neutral-500">
               Consultas por WhatsApp al {CLINIC.phone}
             </p>
@@ -168,7 +194,7 @@ export default function Home() {
 
       {/* Servicios */}
       <section id="servicios" className="mx-auto max-w-6xl scroll-mt-20 px-6 py-20">
-        <h2 className="text-center text-3xl font-bold tracking-tight text-neutral-900">
+        <h2 className="text-center text-3xl font-bold tracking-tight">
           Nuestros servicios
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-center text-neutral-600">
@@ -179,12 +205,12 @@ export default function Home() {
           {SERVICES.map((service) => (
             <div
               key={service.title}
-              className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm transition hover:shadow-md"
+              className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm transition hover:border-amber-200 hover:shadow-md"
             >
-              <div className="mb-3 text-3xl">{service.icon}</div>
-              <h3 className="text-lg font-semibold text-neutral-900">
-                {service.title}
-              </h3>
+              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 text-2xl">
+                {service.icon}
+              </div>
+              <h3 className="text-lg font-semibold">{service.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-neutral-600">
                 {service.description}
               </p>
@@ -193,41 +219,92 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Profesionales */}
-      <section id="profesionales" className="scroll-mt-20 bg-sky-50/60">
-        <div className="mx-auto max-w-6xl px-6 py-20">
-          <h2 className="text-center text-3xl font-bold tracking-tight text-neutral-900">
-            Nuestros profesionales
-          </h2>
-          <div className="mx-auto mt-12 grid max-w-3xl gap-6 sm:grid-cols-2">
-            {TEAM.map((member) => (
-              <div
-                key={member.name}
-                className="rounded-2xl border border-sky-100 bg-white p-6 text-center shadow-sm"
-              >
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-sky-100 text-2xl">
-                  🩺
-                </div>
-                <h3 className="font-semibold text-neutral-900">
-                  {member.name}
-                </h3>
-                <p className="mt-1 text-sm font-medium text-sky-600">
-                  {member.role}
-                </p>
-                <p className="mt-2 text-sm text-neutral-600">{member.detail}</p>
-              </div>
-            ))}
+      {/* Cirugía ortognática — imagen + texto */}
+      <section className="bg-neutral-50">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 px-6 py-20 md:grid-cols-2">
+          <div className="order-2 overflow-hidden rounded-3xl shadow-lg ring-1 ring-neutral-200 md:order-1">
+            <Image
+              src="/clinica/cirugia.jpg"
+              alt="Cirugía ortognática en Maxilofacial San Juan"
+              width={640}
+              height={640}
+              className="h-full w-full object-cover"
+            />
+          </div>
+          <div className="order-1 md:order-2">
+            <h2 className="text-3xl font-bold tracking-tight">
+              Armonía del rostro
+            </h2>
+            <p className="mt-4 text-neutral-600">
+              Como expertos maxilofaciales tenemos una gran pasión por la
+              armonía del rostro. Cuando nos enfrentamos a una cirugía
+              maxilofacial, la llevamos a cabo en forma minuciosa, buscando la
+              mayor armonía posible y mitigando excesos y defectos del rostro.
+            </p>
+            <p className="mt-4 text-neutral-600">
+              La cirugía ortognática permite lograr cambios faciales en el
+              paciente, mejorando funciones y estética a la vez.
+            </p>
+            <Link
+              href="/reservar"
+              className="mt-6 inline-block rounded-full bg-amber-400 px-6 py-3 font-bold text-neutral-900 transition hover:bg-amber-300"
+            >
+              Pedí tu consulta
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* CTA + Contacto */}
-      <section id="contacto" className="mx-auto max-w-6xl scroll-mt-20 px-6 py-20">
-        <div className="grid gap-10 md:grid-cols-2">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight text-neutral-900">
-              ¿Dónde estamos?
-            </h2>
+      {/* Equipo */}
+      <section id="equipo" className="mx-auto max-w-6xl scroll-mt-20 px-6 py-20">
+        <h2 className="text-center text-3xl font-bold tracking-tight">
+          Nuestro equipo
+        </h2>
+        <p className="mx-auto mt-3 max-w-xl text-center text-neutral-600">
+          Grandes profesionales, correctamente capacitados, para acompañarte en
+          cada tratamiento.
+        </p>
+        <div className="mx-auto mt-12 grid max-w-3xl gap-8 sm:grid-cols-2">
+          {TEAM.map((member) => (
+            <div
+              key={member.name}
+              className="overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-sm"
+            >
+              <div className="aspect-square overflow-hidden bg-neutral-100">
+                <Image
+                  src={member.photo}
+                  alt={member.name}
+                  width={640}
+                  height={640}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <div className="p-6 text-center">
+                <h3 className="font-semibold">{member.name}</h3>
+                <p className="mt-1 text-sm font-medium text-amber-600">
+                  {member.role}
+                </p>
+                <p className="mt-2 text-sm text-neutral-600">{member.detail}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Sede / Contacto */}
+      <section id="contacto" className="scroll-mt-20 bg-neutral-50">
+        <div className="mx-auto grid max-w-6xl items-stretch gap-10 px-6 py-20 md:grid-cols-2">
+          <div className="overflow-hidden rounded-3xl shadow-lg ring-1 ring-neutral-200">
+            <Image
+              src="/clinica/clinica.jpg"
+              alt="Sede de Maxilofacial San Juan"
+              width={640}
+              height={640}
+              className="h-full w-full object-cover"
+            />
+          </div>
+          <div className="flex flex-col justify-center">
+            <h2 className="text-3xl font-bold tracking-tight">¿Dónde estamos?</h2>
             <ul className="mt-6 space-y-4 text-neutral-700">
               <li className="flex items-start gap-3">
                 <span aria-hidden>📍</span>
@@ -235,7 +312,7 @@ export default function Home() {
                   href={CLINIC.mapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="underline-offset-4 transition hover:text-sky-700 hover:underline"
+                  className="underline-offset-4 transition hover:text-amber-600 hover:underline"
                 >
                   {CLINIC.address}
                 </a>
@@ -246,7 +323,7 @@ export default function Home() {
                   href={CLINIC.whatsapp}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="underline-offset-4 transition hover:text-sky-700 hover:underline"
+                  className="underline-offset-4 transition hover:text-amber-600 hover:underline"
                 >
                   Turnos y consultas: {CLINIC.phone}
                 </a>
@@ -257,35 +334,52 @@ export default function Home() {
                   href={CLINIC.instagram}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="underline-offset-4 transition hover:text-sky-700 hover:underline"
+                  className="underline-offset-4 transition hover:text-amber-600 hover:underline"
                 >
                   {CLINIC.instagramHandle}
                 </a>
               </li>
             </ul>
-          </div>
-          <div className="flex flex-col justify-center rounded-3xl bg-sky-600 p-10 text-center text-white shadow-lg shadow-sky-600/20">
-            <h3 className="text-2xl font-bold">¡No esperes más!</h3>
-            <p className="mt-2 text-sky-100">
-              Reservá tu turno online y recibí atención personalizada.
-            </p>
-            <Link
-              href="/reservar"
-              className="mx-auto mt-6 rounded-full bg-white px-8 py-3 font-bold text-sky-700 transition hover:bg-sky-50"
-            >
-              Reservar un turno
-            </Link>
+            <div className="mt-8 rounded-3xl bg-neutral-900 p-8 text-center text-white sm:text-left">
+              <h3 className="text-2xl font-bold">¡No esperes más!</h3>
+              <p className="mt-2 text-neutral-300">
+                Reservá tu turno online y recibí atención personalizada.
+              </p>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href="/reservar"
+                  className="rounded-full bg-amber-400 px-6 py-3 text-center font-bold text-neutral-900 transition hover:bg-amber-300"
+                >
+                  Reservar un turno
+                </Link>
+                <Link
+                  href="/login"
+                  className="rounded-full border border-neutral-600 px-6 py-3 text-center font-medium text-neutral-200 transition hover:bg-neutral-800"
+                >
+                  Acceso profesionales
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-neutral-200 bg-neutral-50">
+      <footer className="border-t border-neutral-200 bg-white">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 text-sm text-neutral-500 sm:flex-row">
-          <p>
-            {CLINIC.name} · {CLINIC.address}
-          </p>
-          <Link href="/login" className="transition hover:text-sky-700">
+          <div className="flex items-center gap-2.5">
+            <Image
+              src="/clinica/logo.jpg"
+              alt="Maxilofacial San Juan"
+              width={32}
+              height={32}
+              className="h-8 w-8 rounded-md object-cover"
+            />
+            <p>
+              {CLINIC.name} · {CLINIC.address}
+            </p>
+          </div>
+          <Link href="/login" className="transition hover:text-amber-600">
             Acceso al consultorio
           </Link>
         </div>
