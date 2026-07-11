@@ -39,12 +39,25 @@ model Chair {
 // ── Profesionales ──────────────────────────────────────────────────────────
 
 model Dentist {
-  id             String            @id @default(cuid())
-  name           String
+  id        String @id @default(cuid())
+  // `name` es el nombre completo mostrado en toda la app (agenda, turnos,
+  // reportes, recordatorios). Se mantiene sincronizado desde title/firstName/
+  // lastName en cada alta o edición — no editarlo a mano.
+  name      String
+  title     String @default("") // "Dr." | "Dra." | "" — prefijo profesional
+  firstName String @default("")
+  lastName  String @default("")
   // GENERAL | ORTODONCIA | ENDODONCIA | IMPLANTES | ODONTOPEDIATRIA | CIRUGIA
-  specialty      String            @default("GENERAL")
-  color          String            @default("#0ea5e9") // color en la agenda
-  active         Boolean           @default(true)
+  specialty String @default("GENERAL")
+  color     String @default("#0ea5e9") // color en la agenda
+  // Datos de contacto y legajo
+  phone    String    @default("")
+  email    String? // email de contacto (distinto del email de login en User)
+  license  String? // matrícula profesional
+  hiredAt  DateTime? // fecha de contratación
+  photoUrl String? // foto de perfil (data URL redimensionada)
+  active   Boolean   @default(true)
+
   defaultChair   Chair?            @relation(fields: [defaultChairId], references: [id])
   defaultChairId String?
   schedules      DentistSchedule[]

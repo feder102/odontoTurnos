@@ -12,6 +12,7 @@ import { refundPayment, PaymentError, totalPaidForAppointment } from "@/lib/paym
 import { sendWhatsApp, STAFF_PHONE } from "@/lib/messaging";
 import { formatDate, formatTime, zonedToUtc } from "@/lib/format";
 import { appBaseUrl } from "@/lib/stripe";
+import { SPECIALTIES, DENTIST_TITLES, composeDentistName } from "@/lib/domain";
 
 export async function logout() {
   await destroySession();
@@ -415,6 +416,127 @@ export async function togglePatient(id: string, active: boolean): Promise<void> 
   await requireUser(["ADMIN", "RECEPTION"]);
   await prisma.patient.update({ where: { id }, data: { active } });
   revalidatePath("/dashboard/pacientes");
+}
+
+// ── Odontólogos (solo admin) ────────────────────────────────────────────────
+
+// Límite de la foto de perfil ya redimensionada en el cliente (~data URL).
+const MAX_PHOTO_CHARS = 700_000; // ~500 KB de imagen
+
+export async function upsertDentist(formData: FormData): Promise<ActionResult> {
+  await requireUser(["ADMIN"]);
+
+  const id = String(formData.get("id") || "");
+  const firstName = String(formData.get("firstName") || "").trim();
+  const lastName = String(formData.get("lastName") || "").trim();
+  const title = String(formData.get("title") || "").trim();
+  const specialty = String(formData.get("specialty") || "GENERAL").trim();
+  const color = String(formData.get("color") || "#0ea5e9").trim();
+  const phone = String(formData.get("phone") || "").trim();
+  const email = String(formData.get("email") || "").trim();
+  const license = String(formData.get("license") || "").trim();
+  const hiredAtStr = String(formData.get("hiredAt") || "").trim();
+  const photoUrl = String(formData.get("photoUrl") || "").trim();
+  const defaultChairId = String(formData.get("defaultChairId") || "").trim() || null;
+
+  if (!firstName || !lastName) {
+    return { ok: false, error: "Nombre y apellido son obligatorios" };
+  }
+  if (title && !DENTIST_TITLES.includes(title as (typeof DENTIST_TITLES)[number])) {
+    return { ok: false, error: "Título inválido" };
+  }
+  if (!SPECIALTIES.includes(specialty as (typeof SPECIALTIES)[number])) {
+    return { ok: false, error: "Especialidad inválida" };
+  }
+  if (!/^#[0-9a-fA-F]{6}$/.test(color)) {
+    return { ok: false, error: "Color de agenda inválido" };
+  }
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    return { ok: false, error: "Ingresá un email válido" };
+  }
+  if (hiredAtStr && !DATE_RE.test(hiredAtStr)) {
+    return { ok: false, error: "Fecha de contratación inválida" };
+  }
+  if (photoUrl && (!photoUrl.startsWith("data:image/") || photoUrl.length > MAX_PHOTO_CHARS)) {
+    return { ok: false, error: "La foto no es válida o es demasiado grande" };
+  }
+  if (defaultChairId) {
+    const chair = await prisma.chair.count({ where: { id: defaultChairId } });
+    if (!chair) return { ok: false, error: "El sillón elegido no existe" };
+  }
+
+  const data = {
+    name: composeDentistName({ title, firstName, lastName }),
+    title,
+    firstName,
+    lastName,
+    specialty,
+    color,
+    phone,
+    email: email || null,
+    license: license || null,
+    hiredAt: hiredAtStr ? new Date(`${hiredAtStr}T00:00:00`) : null,
+    photoUrl: photoUrl || null,
+    defaultChairId,
+  };
+
+  try {
+    if (id) {
+      await prisma.dentist.update({ where: { id }, data });
+    } else {
+      await prisma.dentist.create({ data });
+    }
+  } catch (err) {
+    console.error(err);
+    return { ok: false, error: "No se pudo guardar el odontólogo" };
+  }
+
+  // El nombre del odontólogo aparece en toda la app: revalidar el layout.
+  revalidatePath("/dashboard", "layout");
+  return { ok: true };
+}
+
+export async function toggleDentist(id: string, active: boolean): Promise<ActionResult> {
+  await requireUser(["ADMIN"]);
+  if (!active) {
+    const pending = await prisma.appointment.count({
+      where: { dentistId: id, status: { in: ["PENDING", "CONFIRMED"] }, endsAt: { gt: new Date() } },
+    });
+    if (pending > 0) {
+      return {
+        ok: false,
+        error: `No se puede dar de baja: tiene ${pending} turno(s) pendiente(s) o confirmado(s). Reasignalos o cancelalos primero.`,
+      };
+    }
+  }
+  await prisma.dentist.update({ where: { id }, data: { active } });
+  revalidatePath("/dashboard", "layout");
+  return { ok: true };
+}
+
+export async function deleteDentist(id: string): Promise<ActionResult> {
+  await requireUser(["ADMIN"]);
+
+  const appointmentsCount = await prisma.appointment.count({ where: { dentistId: id } });
+  if (appointmentsCount > 0) {
+    return {
+      ok: false,
+      error: "No se puede eliminar: tiene turnos asociados (histórico). Dalo de baja en su lugar.",
+    };
+  }
+  const plansCount = await prisma.treatmentPlan.count({ where: { dentistId: id } });
+  if (plansCount > 0) {
+    return { ok: false, error: "No se puede eliminar: tiene planes de tratamiento asociados." };
+  }
+  const user = await prisma.user.count({ where: { dentistId: id } });
+  if (user > 0) {
+    return { ok: false, error: "Tiene un usuario de acceso vinculado. Desvinculalo antes de eliminar." };
+  }
+
+  // Los horarios y ausencias se borran en cascada (onDelete: Cascade).
+  await prisma.dentist.delete({ where: { id } });
+  revalidatePath("/dashboard", "layout");
+  return { ok: true };
 }
 
 // ── Ausencias y feriados ────────────────────────────────────────────────────
