@@ -110,9 +110,16 @@ export async function createManualAppointment(formData: FormData): Promise<Actio
     const time = String(formData.get("time") || "");
     const clinic = await prisma.clinic.findFirst();
     const dentistId = String(formData.get("dentistId") || "");
-    const dentist = await prisma.dentist.findUnique({ where: { id: dentistId } });
+    const dentist = await prisma.dentist.findUnique({
+      where: { id: dentistId },
+      include: { chairs: { select: { id: true } } },
+    });
     const chairId = String(formData.get("chairId") || "") || dentist?.defaultChairId;
     if (!chairId) return { ok: false, error: "Elegí un sillón" };
+    // Si el odontólogo tiene sillones asignados, solo puede agendarse en uno de ellos.
+    if (dentist && dentist.chairs.length > 0 && !dentist.chairs.some((c) => c.id === chairId)) {
+      return { ok: false, error: "Ese sillón no está asignado a este odontólogo" };
+    }
 
     await createAppointment({
       patientId: pid,
@@ -294,9 +301,9 @@ export async function deleteChair(id: string): Promise<ActionResult> {
     return { ok: false, error: "No se puede eliminar: tiene turnos asociados (histórico). Desactivalo en su lugar." };
   }
 
-  const defaultForDentist = await prisma.dentist.count({ where: { defaultChairId: id } });
-  if (defaultForDentist > 0) {
-    return { ok: false, error: "Es el sillón por defecto de un odontólogo. Cambialo antes de eliminar." };
+  const assignedToDentist = await prisma.dentist.count({ where: { chairs: { some: { id } } } });
+  if (assignedToDentist > 0) {
+    return { ok: false, error: "Está asignado a un odontólogo. Quitáselo antes de eliminar." };
   }
 
   await prisma.chair.delete({ where: { id } });
@@ -437,6 +444,7 @@ export async function upsertDentist(formData: FormData): Promise<ActionResult> {
   const license = String(formData.get("license") || "").trim();
   const hiredAtStr = String(formData.get("hiredAt") || "").trim();
   const photoUrl = String(formData.get("photoUrl") || "").trim();
+  const chairIds = [...new Set(formData.getAll("chairIds").map((v) => String(v).trim()).filter(Boolean))];
   const defaultChairId = String(formData.get("defaultChairId") || "").trim() || null;
 
   if (!firstName || !lastName) {
@@ -460,9 +468,12 @@ export async function upsertDentist(formData: FormData): Promise<ActionResult> {
   if (photoUrl && (!photoUrl.startsWith("data:image/") || photoUrl.length > MAX_PHOTO_CHARS)) {
     return { ok: false, error: "La foto no es válida o es demasiado grande" };
   }
-  if (defaultChairId) {
-    const chair = await prisma.chair.count({ where: { id: defaultChairId } });
-    if (!chair) return { ok: false, error: "El sillón elegido no existe" };
+  if (chairIds.length > 0) {
+    const found = await prisma.chair.count({ where: { id: { in: chairIds } } });
+    if (found !== chairIds.length) return { ok: false, error: "Alguno de los sillones elegidos no existe" };
+  }
+  if (defaultChairId && !chairIds.includes(defaultChairId)) {
+    return { ok: false, error: "El sillón preferido debe ser uno de los asignados" };
   }
 
   const data = {
@@ -479,12 +490,14 @@ export async function upsertDentist(formData: FormData): Promise<ActionResult> {
     photoUrl: photoUrl || null,
     defaultChairId,
   };
+  const chairRefs = chairIds.map((cid) => ({ id: cid }));
 
   try {
     if (id) {
-      await prisma.dentist.update({ where: { id }, data });
+      // `set` reemplaza la lista completa de sillones asignados por la nueva.
+      await prisma.dentist.update({ where: { id }, data: { ...data, chairs: { set: chairRefs } } });
     } else {
-      await prisma.dentist.create({ data });
+      await prisma.dentist.create({ data: { ...data, chairs: { connect: chairRefs } } });
     }
   } catch (err) {
     console.error(err);

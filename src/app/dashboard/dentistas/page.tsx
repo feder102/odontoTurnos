@@ -16,7 +16,7 @@ export default async function DentistasPage() {
   const dentists = await prisma.dentist.findMany({
     orderBy: [{ active: "desc" }, { lastName: "asc" }, { name: "asc" }],
     include: {
-      defaultChair: { select: { name: true } },
+      chairs: { select: { id: true, name: true }, orderBy: { name: "asc" } },
       _count: { select: { appointments: true } },
     },
   });
@@ -71,8 +71,12 @@ export default async function DentistasPage() {
                           Baja
                         </span>
                       )}
-                      {d.defaultChair && (
-                        <p className="text-xs text-neutral-400">{d.defaultChair.name}</p>
+                      {d.chairs.length > 0 && (
+                        <p className="text-xs text-neutral-400">
+                          {d.chairs
+                            .map((c) => (c.id === d.defaultChairId ? `${c.name} ★` : c.name))
+                            .join(" · ")}
+                        </p>
                       )}
                     </div>
                   </div>

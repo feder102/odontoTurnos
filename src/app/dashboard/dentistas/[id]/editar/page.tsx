@@ -16,7 +16,7 @@ export default async function EditarDentistaPage({
   const { id } = await params;
 
   const [dentist, chairs] = await Promise.all([
-    prisma.dentist.findUnique({ where: { id } }),
+    prisma.dentist.findUnique({ where: { id }, include: { chairs: { select: { id: true } } } }),
     prisma.chair.findMany({
       where: { active: true },
       orderBy: { name: "asc" },
@@ -43,6 +43,7 @@ export default async function EditarDentistaPage({
           hiredAt: dentist.hiredAt,
           photoUrl: dentist.photoUrl,
           defaultChairId: dentist.defaultChairId,
+          chairIds: dentist.chairs.map((c) => c.id),
         }}
       />
     </div>

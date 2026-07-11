@@ -70,6 +70,7 @@ async function main() {
       license: "MN 45231",
       hiredAt: new Date("2019-03-01T00:00:00Z"),
       defaultChairId: chair1.id,
+      chairs: { connect: [{ id: chair1.id }, { id: chair3.id }] }, // atiende en 2 sillones
       schedules: {
         create: [
           ...weekdaysFull.map((weekday) => ({ weekday, startTime: "09:00", endTime: "17:00" })),
@@ -91,6 +92,7 @@ async function main() {
       license: "MN 52890",
       hiredAt: new Date("2021-07-15T00:00:00Z"),
       defaultChairId: chair2.id,
+      chairs: { connect: [{ id: chair2.id }] },
       schedules: {
         create: [1, 2, 3, 4, 5].map((weekday) => ({
           weekday,

@@ -19,6 +19,7 @@ export type DentistFormData = {
   hiredAt: Date | null;
   photoUrl: string | null;
   defaultChairId: string | null;
+  chairIds: string[];
 };
 
 export type ChairOption = { id: string; name: string };
@@ -46,7 +47,17 @@ export function DentistForm({
   const [pending, startTransition] = useTransition();
   const [photo, setPhoto] = useState<string | null>(dentist?.photoUrl ?? null);
   const [color, setColor] = useState(dentist?.color ?? "#0ea5e9");
+  const [selectedChairIds, setSelectedChairIds] = useState<string[]>(dentist?.chairIds ?? []);
+  const [defaultChairId, setDefaultChairId] = useState(dentist?.defaultChairId ?? "");
   const fileRef = useRef<HTMLInputElement>(null);
+
+  function toggleChair(chairId: string, checked: boolean) {
+    setSelectedChairIds((prev) =>
+      checked ? [...prev, chairId] : prev.filter((id) => id !== chairId)
+    );
+    // El sillón preferido tiene que seguir siendo uno de los asignados.
+    if (!checked && defaultChairId === chairId) setDefaultChairId("");
+  }
 
   async function onPickPhoto(file: File) {
     setError(null);
@@ -192,35 +203,66 @@ export function DentistForm({
       </section>
 
       {/* Configuración de agenda */}
-      <section className="grid grid-cols-1 gap-3 rounded-xl border border-neutral-200 bg-white p-5 text-sm shadow-sm sm:grid-cols-2">
-        <label className="text-neutral-500">
-          Sillón por defecto
-          <select
-            name="defaultChairId"
-            defaultValue={dentist?.defaultChairId ?? ""}
-            className={inputClass}
-          >
-            <option value="">Sin asignar</option>
-            {chairs.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-neutral-500">
-          Color en la agenda
-          <div className="mt-1 flex items-center gap-3">
-            <input
-              name="color"
-              type="color"
-              value={color}
-              onChange={(e) => setColor(e.target.value)}
-              className="h-10 w-16 cursor-pointer rounded-lg border border-neutral-300"
-            />
-            <span className="font-mono text-xs text-neutral-500">{color}</span>
+      <section className="rounded-xl border border-neutral-200 bg-white p-5 text-sm shadow-sm">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="text-neutral-500">
+            Sillones asignados
+            <p className="mb-1 text-xs text-neutral-400">
+              Puede atender en más de uno (incluso de otros consultorios).
+            </p>
+            <div className="flex flex-col gap-1.5">
+              {chairs.map((c) => (
+                <label key={c.id} className="flex items-center gap-2 text-neutral-700">
+                  <input
+                    type="checkbox"
+                    name="chairIds"
+                    value={c.id}
+                    checked={selectedChairIds.includes(c.id)}
+                    onChange={(e) => toggleChair(c.id, e.target.checked)}
+                    className="h-4 w-4 rounded border-neutral-300"
+                  />
+                  {c.name}
+                </label>
+              ))}
+              {chairs.length === 0 && (
+                <p className="text-xs text-neutral-400">No hay sillones activos para asignar.</p>
+              )}
+            </div>
           </div>
-        </label>
+          <div className="flex flex-col gap-3">
+            <label className="text-neutral-500">
+              Sillón preferido
+              <select
+                name="defaultChairId"
+                value={defaultChairId}
+                onChange={(e) => setDefaultChairId(e.target.value)}
+                className={inputClass}
+              >
+                <option value="">Sin preferencia</option>
+                {chairs
+                  .filter((c) => selectedChairIds.includes(c.id))
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <label className="text-neutral-500">
+              Color en la agenda
+              <div className="mt-1 flex items-center gap-3">
+                <input
+                  name="color"
+                  type="color"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  className="h-10 w-16 cursor-pointer rounded-lg border border-neutral-300"
+                />
+                <span className="font-mono text-xs text-neutral-500">{color}</span>
+              </div>
+            </label>
+          </div>
+        </div>
       </section>
 
       {error && (

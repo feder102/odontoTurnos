@@ -15,50 +15,55 @@ datasource db {
 // ── Consultorio ────────────────────────────────────────────────────────────
 
 model Clinic {
-  id        String  @id @default(cuid())
-  name      String
-  address   String
-  phone     String  @default("")
-  timezone  String  @default("America/Argentina/Buenos_Aires")
+  id           String  @id @default(cuid())
+  name         String
+  address      String
+  phone        String  @default("")
+  timezone     String  @default("America/Argentina/Buenos_Aires")
   // Horario de atención por día: JSON [{weekday:1, open:"09:00", close:"19:00"}]
   // weekday: 0=domingo … 6=sábado. Días ausentes = cerrado.
-  openingHours String @default("[]")
-  chairs    Chair[]
+  openingHours String  @default("[]")
+  chairs       Chair[]
 }
 
 model Chair {
-  id           String        @id @default(cuid())
-  name         String // "Sillón 1", "Consultorio A"
-  clinic       Clinic        @relation(fields: [clinicId], references: [id])
-  clinicId     String
-  active       Boolean       @default(true)
-  dentists     Dentist[]
-  appointments Appointment[]
+  id       String  @id @default(cuid())
+  name     String // "Sillón 1", "Consultorio A"
+  clinic   Clinic  @relation(fields: [clinicId], references: [id])
+  clinicId String
+  active   Boolean @default(true)
+
+  // Odontólogos que pueden usar este sillón (uno puede tener varios asignados).
+  dentists           Dentist[]     @relation("DentistChairs")
+  defaultForDentists Dentist[]     @relation("DentistDefaultChair")
+  appointments       Appointment[]
 }
 
 // ── Profesionales ──────────────────────────────────────────────────────────
 
 model Dentist {
-  id        String @id @default(cuid())
+  id        String    @id @default(cuid())
   // `name` es el nombre completo mostrado en toda la app (agenda, turnos,
   // reportes, recordatorios). Se mantiene sincronizado desde title/firstName/
   // lastName en cada alta o edición — no editarlo a mano.
   name      String
-  title     String @default("") // "Dr." | "Dra." | "" — prefijo profesional
-  firstName String @default("")
-  lastName  String @default("")
+  title     String    @default("") // "Dr." | "Dra." | "" — prefijo profesional
+  firstName String    @default("")
+  lastName  String    @default("")
   // GENERAL | ORTODONCIA | ENDODONCIA | IMPLANTES | ODONTOPEDIATRIA | CIRUGIA
-  specialty String @default("GENERAL")
-  color     String @default("#0ea5e9") // color en la agenda
+  specialty String    @default("GENERAL")
+  color     String    @default("#0ea5e9") // color en la agenda
   // Datos de contacto y legajo
-  phone    String    @default("")
-  email    String? // email de contacto (distinto del email de login en User)
-  license  String? // matrícula profesional
-  hiredAt  DateTime? // fecha de contratación
-  photoUrl String? // foto de perfil (data URL redimensionada)
-  active   Boolean   @default(true)
+  phone     String    @default("")
+  email     String? // email de contacto (distinto del email de login en User)
+  license   String? // matrícula profesional
+  hiredAt   DateTime? // fecha de contratación
+  photoUrl  String? // foto de perfil (data URL redimensionada)
+  active    Boolean   @default(true)
 
-  defaultChair   Chair?            @relation(fields: [defaultChairId], references: [id])
+  // Sillones asignados (puede trabajar en más de uno) y cuál preferir al agendar.
+  chairs         Chair[]           @relation("DentistChairs")
+  defaultChair   Chair?            @relation("DentistDefaultChair", fields: [defaultChairId], references: [id])
   defaultChairId String?
   schedules      DentistSchedule[]
   appointments   Appointment[]
