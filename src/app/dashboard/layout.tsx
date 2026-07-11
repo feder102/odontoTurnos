@@ -8,6 +8,7 @@ const NAV = [
   { href: "/dashboard/agenda", label: "Agenda", icon: "📅", roles: ["ADMIN", "RECEPTION", "DENTIST"] },
   { href: "/dashboard/turnos", label: "Turnos", icon: "🗓️", roles: ["ADMIN", "RECEPTION", "DENTIST"] },
   { href: "/dashboard/sillones", label: "Sillones", icon: "🪑", roles: ["ADMIN", "RECEPTION"] },
+  { href: "/dashboard/ausencias", label: "Ausencias", icon: "🌴", roles: ["ADMIN", "DENTIST"] },
   { href: "/dashboard/pacientes", label: "Pacientes", icon: "🧑‍🤝‍🧑", roles: ["ADMIN", "RECEPTION", "DENTIST"] },
   { href: "/dashboard/tratamientos", label: "Tratamientos", icon: "🦷", roles: ["ADMIN"] },
   { href: "/dashboard/pagos", label: "Pagos", icon: "💳", roles: ["ADMIN", "RECEPTION"] },

@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser, destroySession, canManageBookings } from "@/lib/auth";
 import { BookingError, createAppointment, findOrCreatePatient } from "@/lib/booking";
-import { findConflict } from "@/lib/availability";
+import { findConflict, findDayOffConflict } from "@/lib/availability";
 import { refundPayment, PaymentError, totalPaidForAppointment } from "@/lib/payments";
 import { sendWhatsApp, STAFF_PHONE } from "@/lib/messaging";
 import { formatDate, formatTime, zonedToUtc } from "@/lib/format";
@@ -142,6 +142,9 @@ export async function rescheduleAppointment(
   const { appt, clinic, vars } = await apptWithContext(id);
   const startsAt = zonedToUtc(dateStr, time, clinic?.timezone);
   const endsAt = new Date(startsAt.getTime() + appt.treatment.durationMin * 60000);
+
+  const dayOff = await findDayOffConflict({ dentistId: appt.dentistId, dateStr });
+  if (dayOff) return { ok: false, error: dayOff };
 
   const conflict = await findConflict({
     dentistId: appt.dentistId,
@@ -412,4 +415,56 @@ export async function togglePatient(id: string, active: boolean): Promise<void> 
   await requireUser(["ADMIN", "RECEPTION"]);
   await prisma.patient.update({ where: { id }, data: { active } });
   revalidatePath("/dashboard/pacientes");
+}
+
+// ── Ausencias y feriados ────────────────────────────────────────────────────
+// Feriados del consultorio (dentistId null) los administra el admin.
+// Cada odontólogo administra sus propias ausencias desde su perfil.
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+export async function upsertTimeOff(formData: FormData): Promise<ActionResult> {
+  const session = await requireUser(["ADMIN", "DENTIST"]);
+
+  const startDate = String(formData.get("startDate") || "").trim();
+  const endDate = String(formData.get("endDate") || "").trim() || startDate;
+  const reason = String(formData.get("reason") || "").trim();
+
+  if (!DATE_RE.test(startDate) || !DATE_RE.test(endDate)) {
+    return { ok: false, error: "Ingresá fechas válidas" };
+  }
+  if (endDate < startDate) {
+    return { ok: false, error: "La fecha de fin no puede ser anterior al inicio" };
+  }
+
+  // Un odontólogo solo puede cargar sus propias ausencias; nunca feriados.
+  let dentistId: string | null;
+  if (session.role === "DENTIST") {
+    if (!session.dentistId) {
+      return { ok: false, error: "Tu usuario no está vinculado a un odontólogo" };
+    }
+    dentistId = session.dentistId;
+  } else {
+    dentistId = String(formData.get("dentistId") || "").trim() || null;
+    if (dentistId) {
+      const exists = await prisma.dentist.count({ where: { id: dentistId } });
+      if (!exists) return { ok: false, error: "Odontólogo inexistente" };
+    }
+  }
+
+  await prisma.timeOff.create({ data: { dentistId, startDate, endDate, reason } });
+  revalidatePath("/dashboard/ausencias");
+  return { ok: true };
+}
+
+export async function deleteTimeOff(id: string): Promise<ActionResult> {
+  const session = await requireUser(["ADMIN", "DENTIST"]);
+  const existing = await prisma.timeOff.findUnique({ where: { id } });
+  if (!existing) return { ok: false, error: "Registro no encontrado" };
+  if (session.role === "DENTIST" && existing.dentistId !== session.dentistId) {
+    return { ok: false, error: "Sin permiso sobre este registro" };
+  }
+  await prisma.timeOff.delete({ where: { id } });
+  revalidatePath("/dashboard/ausencias");
+  return { ok: true };
 }
