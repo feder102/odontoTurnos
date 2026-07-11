@@ -65,7 +65,7 @@ export async function getAvailableSlots(params: {
   const { dateStr, treatmentId, dentistId, excludeAppointmentId } = params;
 
   const [clinic, treatment] = await Promise.all([
-    prisma.clinic.findFirst({ include: { chairs: { where: { active: true } } } }),
+    prisma.clinic.findFirst(),
     prisma.treatment.findUnique({ where: { id: treatmentId } }),
   ]);
   if (!clinic || !treatment) return [];
@@ -88,7 +88,10 @@ export async function getAvailableSlots(params: {
   const dentists = (
     await prisma.dentist.findMany({
       where: { active: true, ...(dentistId ? { id: dentistId } : {}) },
-      include: { schedules: { where: { weekday } } },
+      include: {
+        schedules: { where: { weekday } },
+        chairs: { where: { active: true }, select: { id: true } },
+      },
     })
   ).filter((d) => !blockedDentistIds.has(d.id));
 
@@ -136,11 +139,13 @@ export async function getAvailableSlots(params: {
         );
         if (dentistBusy) continue;
 
-        // ¿Hay sillón libre? Preferir el sillón por defecto del odontólogo.
+        // ¿Hay sillón libre entre los asignados a este odontólogo? Preferir el
+        // sillón por defecto si está entre ellos.
         const chairIds = [
           ...(dentist.defaultChairId ? [dentist.defaultChairId] : []),
-          ...clinic.chairs.map((c) => c.id).filter((id) => id !== dentist.defaultChairId),
+          ...dentist.chairs.map((c) => c.id).filter((id) => id !== dentist.defaultChairId),
         ];
+        if (chairIds.length === 0) continue; // sin sillones asignados: no se puede agendar
         const freeChair = chairIds.find(
           (chairId) =>
             !appointments.some(

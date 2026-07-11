@@ -13,7 +13,7 @@ export function NewAppointmentForm({
   chairs,
 }: {
   patients: Patient[];
-  dentists: { id: string; name: string; defaultChairId: string | null }[];
+  dentists: { id: string; name: string; defaultChairId: string | null; chairIds: string[] }[];
   treatments: { id: string; name: string; durationMin: number }[];
   chairs: { id: string; name: string }[];
 }) {
@@ -21,8 +21,17 @@ export function NewAppointmentForm({
   const [mode, setMode] = useState<"existing" | "new">("existing");
   const [search, setSearch] = useState("");
   const [patientId, setPatientId] = useState("");
+  const [dentistId, setDentistId] = useState(dentists[0]?.id ?? "");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const selectedDentist = dentists.find((d) => d.id === dentistId);
+  // Si el odontólogo no tiene sillones asignados, se ofrecen todos como
+  // fallback (evita bloquear el alta por falta de configuración).
+  const availableChairs =
+    selectedDentist && selectedDentist.chairIds.length > 0
+      ? chairs.filter((c) => selectedDentist.chairIds.includes(c.id))
+      : chairs;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -124,7 +133,13 @@ export function NewAppointmentForm({
         </label>
         <label className="text-neutral-500">
           Odontólogo
-          <select name="dentistId" required className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-neutral-900">
+          <select
+            name="dentistId"
+            required
+            value={dentistId}
+            onChange={(e) => setDentistId(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-neutral-900"
+          >
             {dentists.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.name}
@@ -134,14 +149,23 @@ export function NewAppointmentForm({
         </label>
         <label className="text-neutral-500">
           Sillón
-          <select name="chairId" className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-neutral-900">
-            <option value="">(el del odontólogo)</option>
-            {chairs.map((c) => (
+          <select
+            key={dentistId}
+            name="chairId"
+            className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-neutral-900"
+          >
+            <option value="">(el preferido del odontólogo)</option>
+            {availableChairs.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
               </option>
             ))}
           </select>
+          {selectedDentist && selectedDentist.chairIds.length === 0 && (
+            <span className="mt-1 block text-xs text-amber-600">
+              Este odontólogo no tiene sillones asignados; elegí uno manualmente.
+            </span>
+          )}
         </label>
         <label className="text-neutral-500">
           Fecha

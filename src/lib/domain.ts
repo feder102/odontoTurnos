@@ -70,6 +70,23 @@ export const SPECIALTY_LABELS: Record<Specialty, string> = {
   CIRUGIA: "Cirugía",
 };
 
+// Prefijo profesional del odontólogo. "" = sin prefijo.
+export const DENTIST_TITLES = ["", "Dr.", "Dra.", "Od."] as const;
+export type DentistTitle = (typeof DENTIST_TITLES)[number];
+
+// Nombre completo mostrado en toda la app. Se guarda denormalizado en
+// Dentist.name para no tener que recalcularlo en cada consulta.
+export function composeDentistName(parts: {
+  title?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+}): string {
+  return [parts.title, parts.firstName, parts.lastName]
+    .map((s) => (s ?? "").trim())
+    .filter(Boolean)
+    .join(" ");
+}
+
 export const ROLES = ["ADMIN", "DENTIST", "RECEPTION"] as const;
 export type Role = (typeof ROLES)[number];
 
