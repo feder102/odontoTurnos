@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatDate, formatTime, formatMoney } from "@/lib/format";
@@ -109,6 +110,15 @@ export default async function ExitoPage({
         ¿Necesitás cambiar el turno? Escribinos por WhatsApp o llamanos al{" "}
         {clinic?.phone ?? "consultorio"}.
       </p>
+
+      <div className="mt-6 text-center">
+        <Link
+          href="/"
+          className="inline-block rounded-lg border border-neutral-300 px-5 py-2.5 font-medium text-neutral-700 transition hover:bg-neutral-50"
+        >
+          Volver al inicio
+        </Link>
+      </div>
     </main>
   );
 }
