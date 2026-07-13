@@ -33,9 +33,10 @@ model Chair {
   active   Boolean @default(true)
 
   // Odontólogos que pueden usar este sillón (uno puede tener varios asignados).
-  dentists           Dentist[]     @relation("DentistChairs")
-  defaultForDentists Dentist[]     @relation("DentistDefaultChair")
+  dentists           Dentist[]         @relation("DentistChairs")
+  defaultForDentists Dentist[]         @relation("DentistDefaultChair")
   appointments       Appointment[]
+  schedules          DentistSchedule[]
 }
 
 // ── Profesionales ──────────────────────────────────────────────────────────
@@ -89,7 +90,9 @@ model TimeOff {
   @@index([startDate, endDate])
 }
 
-// Horario propio del odontólogo (puede diferir del horario del consultorio)
+// Horario propio del odontólogo (puede diferir del horario del consultorio).
+// Cada bloque puede fijar el sillón en que atiende; si es null se usa el
+// sillón por defecto o cualquiera de los asignados que esté libre.
 model DentistSchedule {
   id        String  @id @default(cuid())
   dentist   Dentist @relation(fields: [dentistId], references: [id], onDelete: Cascade)
@@ -97,6 +100,8 @@ model DentistSchedule {
   weekday   Int // 0=domingo … 6=sábado
   startTime String // "09:00"
   endTime   String // "13:00"
+  chair     Chair?  @relation(fields: [chairId], references: [id], onDelete: SetNull)
+  chairId   String?
 
   @@index([dentistId, weekday])
 }

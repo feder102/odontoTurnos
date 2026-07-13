@@ -89,7 +89,10 @@ export async function getAvailableSlots(params: {
     await prisma.dentist.findMany({
       where: { active: true, ...(dentistId ? { id: dentistId } : {}) },
       include: {
-        schedules: { where: { weekday } },
+        schedules: {
+          where: { weekday },
+          include: { chair: { select: { id: true, active: true } } },
+        },
         chairs: { where: { active: true }, select: { id: true } },
       },
     })
@@ -114,50 +117,54 @@ export async function getAvailableSlots(params: {
   const seenTimes = new Set<string>();
 
   for (const dentist of dentists) {
-    const windows = intersect(
-      opening,
-      dentist.schedules.map((s) => ({
-        start: timeToMinutes(s.startTime),
-        end: timeToMinutes(s.endTime),
-      }))
-    );
+    // Cada bloque horario se procesa por separado: si fija un sillón, los
+    // slots de ese bloque solo pueden usar ese sillón.
+    for (const block of dentist.schedules) {
+      const windows = intersect(opening, [
+        { start: timeToMinutes(block.startTime), end: timeToMinutes(block.endTime) },
+      ]);
 
-    for (const w of windows) {
-      for (let t = w.start; t + duration <= w.end; t += SLOT_STEP_MIN) {
-        const time = minutesToTime(t);
-        if (dentistId == null && seenTimes.has(time)) continue; // ya cubierto por otro odontólogo
+      // Sillones candidatos para este bloque. Con sillón fijado (y activo) se
+      // usa solo ese; si no, el por defecto y después el resto de los asignados.
+      const chairIds =
+        block.chair && block.chair.active
+          ? [block.chair.id]
+          : [
+              ...(dentist.defaultChairId ? [dentist.defaultChairId] : []),
+              ...dentist.chairs.map((c) => c.id).filter((id) => id !== dentist.defaultChairId),
+            ];
+      if (chairIds.length === 0) continue; // sin sillones asignados: no se puede agendar
 
-        const startsAt = zonedToUtc(dateStr, time, tz);
-        const endsAt = new Date(startsAt.getTime() + duration * 60000);
-        if (startsAt.getTime() <= now) continue;
+      for (const w of windows) {
+        for (let t = w.start; t + duration <= w.end; t += SLOT_STEP_MIN) {
+          const time = minutesToTime(t);
+          if (dentistId == null && seenTimes.has(time)) continue; // ya cubierto por otro odontólogo
 
-        // ¿El odontólogo está libre?
-        const dentistBusy = appointments.some(
-          (a) =>
-            a.dentistId === dentist.id &&
-            overlaps(startsAt.getTime(), endsAt.getTime(), a.startsAt.getTime(), a.endsAt.getTime())
-        );
-        if (dentistBusy) continue;
+          const startsAt = zonedToUtc(dateStr, time, tz);
+          const endsAt = new Date(startsAt.getTime() + duration * 60000);
+          if (startsAt.getTime() <= now) continue;
 
-        // ¿Hay sillón libre entre los asignados a este odontólogo? Preferir el
-        // sillón por defecto si está entre ellos.
-        const chairIds = [
-          ...(dentist.defaultChairId ? [dentist.defaultChairId] : []),
-          ...dentist.chairs.map((c) => c.id).filter((id) => id !== dentist.defaultChairId),
-        ];
-        if (chairIds.length === 0) continue; // sin sillones asignados: no se puede agendar
-        const freeChair = chairIds.find(
-          (chairId) =>
-            !appointments.some(
-              (a) =>
-                a.chairId === chairId &&
-                overlaps(startsAt.getTime(), endsAt.getTime(), a.startsAt.getTime(), a.endsAt.getTime())
-            )
-        );
-        if (!freeChair) continue;
+          // ¿El odontólogo está libre?
+          const dentistBusy = appointments.some(
+            (a) =>
+              a.dentistId === dentist.id &&
+              overlaps(startsAt.getTime(), endsAt.getTime(), a.startsAt.getTime(), a.endsAt.getTime())
+          );
+          if (dentistBusy) continue;
 
-        slots.push({ time, startsAt: startsAt.toISOString(), dentistId: dentist.id, chairId: freeChair });
-        seenTimes.add(time);
+          const freeChair = chairIds.find(
+            (chairId) =>
+              !appointments.some(
+                (a) =>
+                  a.chairId === chairId &&
+                  overlaps(startsAt.getTime(), endsAt.getTime(), a.startsAt.getTime(), a.endsAt.getTime())
+              )
+          );
+          if (!freeChair) continue;
+
+          slots.push({ time, startsAt: startsAt.toISOString(), dentistId: dentist.id, chairId: freeChair });
+          seenTimes.add(time);
+        }
       }
     }
   }

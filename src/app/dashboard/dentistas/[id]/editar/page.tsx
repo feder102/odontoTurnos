@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
@@ -34,7 +35,17 @@ export default async function EditarDentistaPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <PageTitle title={`Editar — ${dentist.name}`} />
+      <PageTitle
+        title={`Editar — ${dentist.name}`}
+        action={
+          <Link
+            href={`/dashboard/horarios?dentista=${dentist.id}`}
+            className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100"
+          >
+            ⏰ Horarios de atención
+          </Link>
+        }
+      />
       <DentistForm
         chairs={chairs}
         dentist={{
