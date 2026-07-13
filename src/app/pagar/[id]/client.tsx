@@ -97,6 +97,10 @@ export function PaymentBrick({
         onSubmit={onSubmit}
         onError={(error) => {
           console.error("Payment Brick error:", error);
+          // "non_critical" son avisos del propio formulario (p. ej. una
+          // tarjeta cuyo número aún no reconoce): el usuario puede seguir
+          // completando el formulario sin recargar la página.
+          if (error.type !== "critical") return;
           setMessage({
             kind: "error",
             text: "Hubo un problema cargando el formulario de pago. Recargá la página.",
