@@ -653,3 +653,91 @@ export async function deleteTimeOff(id: string): Promise<ActionResult> {
   revalidatePath("/dashboard/ausencias");
   return { ok: true };
 }
+
+// ── Horarios de atención ────────────────────────────────────────────────────
+// Cada odontólogo carga sus bloques semanales (día + franja + sillón opcional).
+// El admin puede gestionar los horarios de cualquier odontólogo.
+
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+// Resuelve sobre qué odontólogo opera la acción según el rol de la sesión.
+async function resolveScheduleDentistId(
+  session: { role: string; dentistId: string | null },
+  formDentistId: string
+): Promise<{ dentistId?: string; error?: string }> {
+  if (session.role === "DENTIST") {
+    if (!session.dentistId) {
+      return { error: "Tu usuario no está vinculado a un odontólogo" };
+    }
+    return { dentistId: session.dentistId };
+  }
+  if (!formDentistId) return { error: "Elegí un odontólogo" };
+  const exists = await prisma.dentist.count({ where: { id: formDentistId } });
+  if (!exists) return { error: "Odontólogo inexistente" };
+  return { dentistId: formDentistId };
+}
+
+export async function addScheduleBlock(formData: FormData): Promise<ActionResult> {
+  const session = await requireUser(["ADMIN", "DENTIST"]);
+
+  const resolved = await resolveScheduleDentistId(
+    session,
+    String(formData.get("dentistId") || "").trim()
+  );
+  if (resolved.error || !resolved.dentistId) return { ok: false, error: resolved.error };
+  const dentistId = resolved.dentistId;
+
+  const weekday = Number(formData.get("weekday"));
+  const startTime = String(formData.get("startTime") || "").trim();
+  const endTime = String(formData.get("endTime") || "").trim();
+  const chairId = String(formData.get("chairId") || "").trim() || null;
+
+  if (!Number.isInteger(weekday) || weekday < 0 || weekday > 6) {
+    return { ok: false, error: "Día inválido" };
+  }
+  if (!TIME_RE.test(startTime) || !TIME_RE.test(endTime)) {
+    return { ok: false, error: "Ingresá horarios válidos (HH:MM)" };
+  }
+  if (endTime <= startTime) {
+    return { ok: false, error: "La hora de fin debe ser posterior a la de inicio" };
+  }
+
+  // El sillón (opcional) tiene que estar asignado al odontólogo y activo.
+  if (chairId) {
+    const chair = await prisma.chair.findFirst({
+      where: { id: chairId, active: true, dentists: { some: { id: dentistId } } },
+      select: { id: true },
+    });
+    if (!chair) {
+      return { ok: false, error: "El sillón no está asignado a este odontólogo" };
+    }
+  }
+
+  // Sin superposición con otros bloques del mismo día (comparación HH:MM textual).
+  const sameDay = await prisma.dentistSchedule.findMany({
+    where: { dentistId, weekday },
+    select: { startTime: true, endTime: true },
+  });
+  const overlapping = sameDay.some((b) => startTime < b.endTime && b.startTime < endTime);
+  if (overlapping) {
+    return { ok: false, error: "El bloque se superpone con otro horario ya cargado ese día" };
+  }
+
+  await prisma.dentistSchedule.create({
+    data: { dentistId, weekday, startTime, endTime, chairId },
+  });
+  revalidatePath("/dashboard/horarios");
+  return { ok: true };
+}
+
+export async function deleteScheduleBlock(id: string): Promise<ActionResult> {
+  const session = await requireUser(["ADMIN", "DENTIST"]);
+  const existing = await prisma.dentistSchedule.findUnique({ where: { id } });
+  if (!existing) return { ok: false, error: "Registro no encontrado" };
+  if (session.role === "DENTIST" && existing.dentistId !== session.dentistId) {
+    return { ok: false, error: "Sin permiso sobre este registro" };
+  }
+  await prisma.dentistSchedule.delete({ where: { id } });
+  revalidatePath("/dashboard/horarios");
+  return { ok: true };
+}
