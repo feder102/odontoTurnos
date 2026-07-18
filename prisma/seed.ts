@@ -11,7 +11,9 @@ import { zonedToUtc, addDaysStr, todayStr } from "../src/lib/format";
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
-const TZ = "America/Argentina/Buenos_Aires";
+// El consultorio está en San Juan. Mismo offset (-03, sin DST) que
+// Buenos_Aires, así que el cambio no altera horarios ya calculados.
+const TZ = "America/Argentina/San_Juan";
 
 async function main() {
   console.log("🧹 Limpiando base…");
@@ -32,9 +34,9 @@ async function main() {
   console.log("🏥 Consultorio y sillones…");
   const clinic = await prisma.clinic.create({
     data: {
-      name: "Consultorio Odontológico Sonrisa",
-      address: "Av. Rivadavia 4820, CABA",
-      phone: "+541148670000",
+      name: "Maxilofacial San Juan",
+      address: "Santiago del Estero Sur 615, San Juan, Argentina",
+      phone: "+542644605493",
       timezone: TZ,
       openingHours: JSON.stringify([
         { weekday: 1, open: "09:00", close: "19:00" },

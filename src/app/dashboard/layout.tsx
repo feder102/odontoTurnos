@@ -30,7 +30,7 @@ export default async function DashboardLayout({
     <div className="flex min-h-screen">
       <aside className="hidden w-56 flex-col border-r border-neutral-200 bg-white md:flex">
         <div className="border-b border-neutral-200 px-4 py-4">
-          <p className="font-bold">🦷 Sonrisa</p>
+          <p className="font-bold">🦷 Maxilofacial San Juan</p>
           <p className="mt-0.5 truncate text-sm text-neutral-500">{session.name}</p>
           <p className="text-xs text-neutral-400">{ROLE_LABELS[session.role]}</p>
         </div>

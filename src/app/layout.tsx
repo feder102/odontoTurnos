@@ -17,7 +17,7 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: "Consultorio Sonrisa — Turnos online",
+  title: "Maxilofacial San Juan — Turnos online",
   description: "Reservá tu turno odontológico online",
 };
 
