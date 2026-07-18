@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ClayButton } from "@/components/clay/ClayButton";
 
 // Oferta de agendar las sesiones restantes de un tratamiento multi-sesión.
 export function PlanScheduler({
@@ -29,27 +30,31 @@ export function PlanScheduler({
   }
 
   return (
-    <div className="mt-6 rounded-xl border border-violet-200 bg-violet-50 p-5">
-      <p className="font-semibold text-violet-900">
+    <div className="mt-6 rounded-clay-lg bg-white/65 p-6 shadow-clay-card backdrop-blur-xl">
+      <p className="font-heading text-lg font-extrabold text-clay-teal">
         Este tratamiento lleva {totalSessions} sesiones
       </p>
-      <p className="mt-1 text-sm text-violet-700">
+      <p className="mt-2 text-sm font-medium leading-relaxed text-clay-muted">
         {totalSessions - 1 === 1
           ? `Podemos agendarte la sesión siguiente, a los ${intervalDays} días en el mismo horario (o el más cercano disponible).`
           : `Podemos agendarte las ${totalSessions - 1} sesiones siguientes, una cada ${intervalDays} días en el mismo horario (o el más cercano disponible).`}
       </p>
       {state === "error" && (
-        <p className="mt-2 text-sm text-red-600">
+        <p
+          role="alert"
+          className="mt-4 rounded-clay-sm bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800 shadow-clay-pressed-sm"
+        >
           No pudimos agendar las sesiones. Coordinalas en el consultorio.
         </p>
       )}
-      <button
+      <ClayButton
         onClick={schedule}
         disabled={state === "working"}
-        className="mt-3 rounded-lg bg-violet-600 px-5 py-2.5 font-medium text-white transition hover:bg-violet-700 disabled:opacity-50"
+        variant="secondary"
+        className="mt-5 w-full sm:w-auto"
       >
         {state === "working" ? "Agendando…" : "Agendar las sesiones siguientes"}
-      </button>
+      </ClayButton>
     </div>
   );
 }
@@ -92,29 +97,28 @@ export function PayBox({
   }
 
   return (
-    <div className="mt-6 rounded-xl border border-sky-200 bg-sky-50 p-5">
-      <p className="font-semibold text-sky-900">Aboná tu turno online</p>
-      <p className="mt-1 text-sm text-sky-700">
+    <div className="mt-6 rounded-clay-lg bg-white/65 p-6 shadow-clay-card backdrop-blur-xl">
+      <p className="font-heading text-lg font-extrabold">Aboná tu turno online</p>
+      <p className="mt-2 text-sm font-medium leading-relaxed text-clay-muted">
         Es opcional: también podés pagar en el consultorio.
         {!mpLive && " (Modo de prueba: el pago se simula.)"}
       </p>
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-      <div className="mt-3 flex flex-wrap gap-2">
-        <button
-          onClick={() => pay("FULL")}
-          disabled={working}
-          className="rounded-lg bg-sky-600 px-5 py-2.5 font-medium text-white transition hover:bg-sky-700 disabled:opacity-50"
+      {error && (
+        <p
+          role="alert"
+          className="mt-4 rounded-clay-sm bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800 shadow-clay-pressed-sm"
         >
+          {error}
+        </p>
+      )}
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+        <ClayButton onClick={() => pay("FULL")} disabled={working}>
           Pagar {amountLabel}
-        </button>
+        </ClayButton>
         {depositLabel && (
-          <button
-            onClick={() => pay("DEPOSIT")}
-            disabled={working}
-            className="rounded-lg border border-sky-600 px-5 py-2.5 font-medium text-sky-700 transition hover:bg-sky-100 disabled:opacity-50"
-          >
+          <ClayButton onClick={() => pay("DEPOSIT")} disabled={working} variant="outline">
             Seña de {depositLabel}
-          </button>
+          </ClayButton>
         )}
       </div>
     </div>

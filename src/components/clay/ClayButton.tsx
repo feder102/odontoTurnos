@@ -56,6 +56,8 @@ export function ClayButton({
     "inline-flex items-center justify-center gap-2 font-heading font-bold tracking-wide",
     "transition-all duration-200 will-change-transform",
     "hover:-translate-y-1 active:translate-y-0 active:scale-[0.92]",
+    // Deshabilitado: la arcilla queda inerte — no flota ni se hunde.
+    "disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0 disabled:active:scale-100",
     "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-clay-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-clay-canvas",
     VARIANTS[variant],
     SIZES[size],

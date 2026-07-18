@@ -2,9 +2,14 @@
 
 // Wizard público de reservas, mobile-first:
 // 1. tratamiento → 2. odontólogo → 3. fecha y hora → 4. datos → 5. confirmar
+//
+// El shell (canvas, blobs, marca) lo pone page.tsx; acá sólo van los pasos.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ClayButton } from "@/components/clay/ClayButton";
+import { ClayInput, ClayTextarea } from "@/components/clay/ClayInput";
+import { ClayChip, ClayOptionCard } from "@/components/clay/ClayOption";
 
 type Treatment = {
   id: string;
@@ -82,7 +87,7 @@ export default function BookingWizard() {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  const days = useMemo(next21Days, []);
+  const days = useMemo(() => next21Days(), []);
 
   useEffect(() => {
     fetch("/api/public/booking-data")
@@ -173,46 +178,64 @@ export default function BookingWizard() {
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-lg px-4 py-16 text-center text-neutral-500">
+      <div className="rounded-clay-lg bg-white/65 p-8 text-center font-medium text-clay-muted shadow-clay-card backdrop-blur-xl">
         Cargando…
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="mx-auto max-w-lg px-4 pb-24 pt-6">
+    <>
       {/* Encabezado + progreso */}
-      <header className="mb-6">
-        <h1 className="text-xl font-bold">{clinic?.name ?? "Reservar turno"}</h1>
-        <div className="mt-4 flex items-center gap-1">
+      <header className="mb-7">
+        <h1 className="font-heading text-2xl font-black tracking-tight sm:text-3xl">
+          {clinic?.name ?? "Reservar turno"}
+        </h1>
+
+        {/* Track hundido, relleno ámbar: el progreso se "llena" en la arcilla. */}
+        <div className="mt-5 flex items-center gap-1.5">
           {STEPS.map((label, i) => (
-            <div key={label} className="flex-1">
+            <div
+              key={label}
+              className="h-2 flex-1 overflow-hidden rounded-full bg-clay-surface shadow-clay-pressed-sm"
+            >
               <div
-                className={`h-1.5 rounded-full ${i <= step ? "bg-sky-600" : "bg-neutral-200"}`}
+                className={`h-full rounded-full transition-all duration-500 ${
+                  i <= step
+                    ? "w-full bg-gradient-to-r from-clay-accent-light to-clay-accent-bright"
+                    : "w-0"
+                }`}
               />
             </div>
           ))}
         </div>
-        <p className="mt-2 text-sm text-neutral-500">
-          Paso {step + 1} de {STEPS.length}: <span className="font-medium text-neutral-700">{STEPS[step]}</span>
+        <p className="mt-3 text-sm font-medium text-clay-muted">
+          Paso {step + 1} de {STEPS.length}:{" "}
+          <span className="font-heading font-bold text-clay-foreground">
+            {STEPS[step]}
+          </span>
         </p>
       </header>
 
       {error && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div
+          role="alert"
+          className="mb-5 rounded-clay-md bg-rose-50/90 px-5 py-4 text-sm font-medium text-rose-800 shadow-clay-card backdrop-blur-xl"
+        >
           {error}
         </div>
       )}
 
       {/* Paso 1: tratamiento */}
       {step === 0 && (
-        <div className="flex flex-col gap-3">
-          <p className="text-sm text-neutral-600">
+        <div className="flex flex-col gap-4">
+          <p className="text-base font-medium leading-relaxed text-clay-muted">
             ¿Qué necesitás? Si es tu primera visita, te recomendamos la consulta de evaluación.
           </p>
           {treatments.map((t) => (
-            <button
+            <ClayOptionCard
               key={t.id}
+              selected={treatment?.id === t.id}
               onClick={() => {
                 setTreatment(t);
                 setSlot(null);
@@ -220,60 +243,70 @@ export default function BookingWizard() {
                 setDateStr(null);
                 setStep(1);
               }}
-              className={`rounded-xl border bg-white p-4 text-left shadow-sm transition hover:border-sky-400 ${
-                treatment?.id === t.id ? "border-sky-500 ring-2 ring-sky-200" : "border-neutral-200"
-              }`}
             >
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="font-semibold">{t.name}</span>
-                <span className="whitespace-nowrap text-sm text-neutral-500">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="font-heading text-lg font-extrabold leading-snug">
+                  {t.name}
+                </span>
+                <span className="whitespace-nowrap rounded-full bg-clay-accent/10 px-3 py-1 text-xs font-bold text-clay-accent">
                   {t.durationMin} min
                 </span>
               </div>
               {t.description && (
-                <p className="mt-1 text-sm text-neutral-500">{t.description}</p>
+                <p className="mt-2 text-sm font-medium leading-relaxed text-clay-muted">
+                  {t.description}
+                </p>
               )}
-              <p className="mt-1 text-sm text-neutral-600">
+              <p className="mt-2.5 font-heading text-base font-bold">
                 {money(t.priceCents)}
                 {t.insurancePriceCents != null && (
-                  <span className="text-neutral-400"> · con obra social {money(t.insurancePriceCents)}</span>
+                  <span className="font-sans text-sm font-medium text-clay-muted">
+                    {" "}
+                    · con obra social {money(t.insurancePriceCents)}
+                  </span>
                 )}
               </p>
               {t.multiSession && (
-                <p className="mt-1 text-xs font-medium text-violet-600">
+                <p className="mt-2 inline-block rounded-full bg-clay-teal/10 px-3 py-1 text-xs font-bold text-clay-teal">
                   Tratamiento de {t.defaultSessions} sesiones
                 </p>
               )}
-            </button>
+            </ClayOptionCard>
           ))}
         </div>
       )}
 
       {/* Paso 2: profesional */}
       {step === 1 && treatment && (
-        <div className="flex flex-col gap-3">
-          <button
+        <div className="flex flex-col gap-4">
+          <ClayOptionCard
+            selected={dentistId === null && step > 1}
             onClick={() => {
               setDentistId(null);
               setStep(2);
             }}
-            className="rounded-xl border border-neutral-200 bg-white p-4 text-left shadow-sm transition hover:border-sky-400"
           >
-            <span className="font-semibold">Cualquier profesional disponible</span>
-            <p className="text-sm text-neutral-500">Más horarios para elegir</p>
-          </button>
+            <span className="font-heading text-lg font-extrabold">
+              Cualquier profesional disponible
+            </span>
+            <p className="mt-1 text-sm font-medium text-clay-muted">
+              Más horarios para elegir
+            </p>
+          </ClayOptionCard>
           {dentists.map((d) => (
-            <button
+            <ClayOptionCard
               key={d.id}
+              selected={dentistId === d.id}
               onClick={() => {
                 setDentistId(d.id);
                 setStep(2);
               }}
-              className="rounded-xl border border-neutral-200 bg-white p-4 text-left shadow-sm transition hover:border-sky-400"
             >
-              <span className="font-semibold">{d.name}</span>
-              <p className="text-sm text-neutral-500">{d.specialtyLabel}</p>
-            </button>
+              <span className="font-heading text-lg font-extrabold">{d.name}</span>
+              <p className="mt-1 text-sm font-medium text-clay-muted">
+                {d.specialtyLabel}
+              </p>
+            </ClayOptionCard>
           ))}
         </div>
       )}
@@ -281,172 +314,181 @@ export default function BookingWizard() {
       {/* Paso 3: fecha y hora */}
       {step === 2 && treatment && (
         <div>
-          <div className="-mx-4 overflow-x-auto px-4 pb-2">
-            <div className="flex gap-2" style={{ width: "max-content" }}>
+          {/* py-2 para que el hover-lift de las fichas no se recorte. */}
+          <div className="-mx-4 overflow-x-auto px-4 py-2">
+            <div className="flex gap-2.5" style={{ width: "max-content" }}>
               {days.map((d) => (
-                <button
+                <ClayChip
                   key={d.dateStr}
+                  selected={dateStr === d.dateStr}
                   onClick={() => pickDate(d.dateStr)}
-                  className={`flex w-16 flex-col items-center rounded-xl border px-2 py-2 text-sm transition ${
-                    dateStr === d.dateStr
-                      ? "border-sky-600 bg-sky-600 text-white"
-                      : "border-neutral-200 bg-white hover:border-sky-400"
-                  }`}
+                  className="flex w-[70px] shrink-0 flex-col items-center gap-0.5 px-2 py-3"
                 >
-                  <span className="text-xs uppercase opacity-70">{d.weekday}</span>
-                  <span className="font-semibold">{d.label}</span>
-                </button>
+                  <span className="text-[11px] uppercase tracking-wide opacity-70">
+                    {d.weekday}
+                  </span>
+                  <span>{d.label}</span>
+                </ClayChip>
               ))}
             </div>
           </div>
 
           {dateStr && slots === null && (
-            <p className="py-8 text-center text-neutral-500">Buscando horarios…</p>
+            <p className="py-10 text-center font-medium text-clay-muted">
+              Buscando horarios…
+            </p>
           )}
           {dateStr && slots !== null && slots.length === 0 && (
-            <p className="py-8 text-center text-neutral-500">
+            <p className="mt-4 rounded-clay-md bg-white/65 px-5 py-6 text-center font-medium leading-relaxed text-clay-muted shadow-clay-card backdrop-blur-xl">
               No quedan horarios para ese día. Probá con otra fecha.
             </p>
           )}
           {slots !== null && slots.length > 0 && (
-            <div className="mt-4 grid grid-cols-4 gap-2">
+            <div className="mt-5 grid grid-cols-4 gap-2.5">
               {slots.map((s) => (
-                <button
+                <ClayChip
                   key={s.startsAt + s.dentistId}
+                  selected={slot?.startsAt === s.startsAt}
                   onClick={() => {
                     setSlot(s);
                     setStep(3);
                   }}
-                  className={`rounded-lg border py-2.5 text-sm font-medium transition ${
-                    slot?.startsAt === s.startsAt
-                      ? "border-sky-600 bg-sky-600 text-white"
-                      : "border-neutral-200 bg-white hover:border-sky-400"
-                  }`}
+                  className="py-3"
                 >
                   {s.time}
-                </button>
+                </ClayChip>
               ))}
             </div>
           )}
           {!dateStr && (
-            <p className="py-8 text-center text-neutral-500">Elegí un día para ver los horarios.</p>
+            <p className="py-10 text-center font-medium text-clay-muted">
+              Elegí un día para ver los horarios.
+            </p>
           )}
         </div>
       )}
 
       {/* Paso 4: datos del paciente */}
       {step === 3 && (
-        <div className="flex flex-col gap-4">
-          <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
-            <p className="font-semibold">¿Ya sos paciente del consultorio?</p>
-            <p className="mt-1 text-sm text-neutral-500">
+        <div className="flex flex-col gap-5">
+          <div className="rounded-clay-lg bg-white/65 p-6 shadow-clay-card backdrop-blur-xl">
+            <p className="font-heading text-lg font-extrabold">
+              ¿Ya sos paciente del consultorio?
+            </p>
+            <p className="mt-1.5 text-sm font-medium leading-relaxed text-clay-muted">
               Ingresá tu teléfono o email y no te pedimos el resto.
             </p>
-            <div className="mt-3 flex gap-2">
-              <input
+            <div className="mt-4 flex gap-2.5">
+              <ClayInput
                 value={lookupValue}
                 onChange={(e) => setLookupValue(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && doLookup()}
                 placeholder="+54911… o tu email"
-                className="min-w-0 flex-1 rounded-lg border border-neutral-300 px-3 py-2.5"
+                aria-label="Teléfono o email"
+                className="min-w-0 flex-1"
               />
-              <button
+              <ClayButton
                 onClick={doLookup}
                 disabled={lookupState === "searching"}
-                className="rounded-lg bg-neutral-800 px-4 py-2.5 font-medium text-white disabled:opacity-50"
+                variant="secondary"
+                className="shrink-0"
               >
                 {lookupState === "searching" ? "…" : "Buscar"}
-              </button>
+              </ClayButton>
             </div>
             {lookupState === "found" && knownPatient && (
-              <div className="mt-3 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              <div className="mt-4 rounded-clay-sm bg-emerald-50 px-5 py-3.5 text-sm font-medium text-emerald-800 shadow-clay-pressed-sm">
                 ¡Hola de nuevo, <strong>{knownPatient.firstName}</strong>! Ya tenemos tus datos.
               </div>
             )}
             {lookupState === "notfound" && (
-              <div className="mt-3 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <div className="mt-4 rounded-clay-sm bg-amber-50 px-5 py-3.5 text-sm font-medium text-amber-900 shadow-clay-pressed-sm">
                 No te encontramos — completá tus datos abajo y quedás registrado.
               </div>
             )}
           </div>
 
           {!knownPatient && (
-            <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
-              <p className="mb-3 font-semibold">Tus datos</p>
+            <div className="rounded-clay-lg bg-white/65 p-6 shadow-clay-card backdrop-blur-xl">
+              <p className="mb-4 font-heading text-lg font-extrabold">Tus datos</p>
               <div className="grid grid-cols-2 gap-3">
-                <input
+                <ClayInput
                   placeholder="Nombre *"
+                  aria-label="Nombre"
                   value={form.firstName}
                   onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-                  className="rounded-lg border border-neutral-300 px-3 py-2.5"
                 />
-                <input
+                <ClayInput
                   placeholder="Apellido *"
+                  aria-label="Apellido"
                   value={form.lastName}
                   onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-                  className="rounded-lg border border-neutral-300 px-3 py-2.5"
                 />
-                <input
+                <ClayInput
                   placeholder="WhatsApp * (+54911…)"
+                  aria-label="WhatsApp"
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  className="col-span-2 rounded-lg border border-neutral-300 px-3 py-2.5"
+                  className="col-span-2"
                 />
-                <input
+                <ClayInput
                   placeholder="Email"
+                  aria-label="Email"
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="col-span-2 rounded-lg border border-neutral-300 px-3 py-2.5"
+                  className="col-span-2"
                 />
-                <label className="col-span-2 text-sm text-neutral-500">
+                <label className="col-span-2 text-sm font-medium text-clay-muted">
                   Fecha de nacimiento
-                  <input
+                  <ClayInput
                     type="date"
                     value={form.birthDate}
                     onChange={(e) => setForm({ ...form, birthDate: e.target.value })}
-                    className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-neutral-900"
+                    className="mt-1.5 text-clay-foreground"
                   />
                 </label>
-                <input
+                <ClayInput
                   placeholder="Obra social (si tenés)"
+                  aria-label="Obra social"
                   value={form.insuranceProvider}
                   onChange={(e) => setForm({ ...form, insuranceProvider: e.target.value })}
-                  className="rounded-lg border border-neutral-300 px-3 py-2.5"
                 />
-                <input
+                <ClayInput
                   placeholder="N° de afiliado"
+                  aria-label="Número de afiliado"
                   value={form.insuranceNumber}
                   onChange={(e) => setForm({ ...form, insuranceNumber: e.target.value })}
-                  className="rounded-lg border border-neutral-300 px-3 py-2.5"
                 />
-                <textarea
+                <ClayTextarea
                   placeholder="Alergias o datos médicos que debamos saber"
+                  aria-label="Alergias o datos médicos"
                   value={form.medicalNotes}
                   onChange={(e) => setForm({ ...form, medicalNotes: e.target.value })}
                   rows={2}
-                  className="col-span-2 rounded-lg border border-neutral-300 px-3 py-2.5"
+                  className="col-span-2"
                 />
               </div>
             </div>
           )}
 
-          <button
+          <ClayButton
             onClick={() => setStep(4)}
             disabled={!patientReady}
-            className="rounded-xl bg-sky-600 px-6 py-3.5 font-semibold text-white shadow-sm transition hover:bg-sky-700 disabled:opacity-40"
+            size="lg"
+            className="w-full"
           >
             Continuar
-          </button>
+          </ClayButton>
         </div>
       )}
 
       {/* Paso 5: confirmación */}
       {step === 4 && treatment && slot && (
-        <div className="flex flex-col gap-4">
-          <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
-            <p className="mb-4 text-lg font-bold">Revisá tu turno</p>
-            <dl className="flex flex-col gap-2.5 text-sm">
+        <div className="flex flex-col gap-5">
+          <div className="rounded-clay-lg bg-white/65 p-6 shadow-clay-card backdrop-blur-xl">
+            <p className="mb-5 font-heading text-xl font-black">Revisá tu turno</p>
+            <dl className="flex flex-col gap-3 text-sm">
               <Row label="Tratamiento" value={`${treatment.name} (${treatment.durationMin} min)`} />
               <Row
                 label="Fecha"
@@ -467,18 +509,19 @@ export default function BookingWizard() {
             </dl>
           </div>
           {treatment.multiSession && (
-            <p className="rounded-lg bg-violet-50 px-4 py-3 text-sm text-violet-700">
+            <p className="rounded-clay-md bg-clay-teal/10 px-5 py-4 text-sm font-medium leading-relaxed text-clay-teal">
               Este tratamiento lleva {treatment.defaultSessions} sesiones. Después de confirmar
               te vamos a proponer las fechas de las siguientes.
             </p>
           )}
-          <button
+          <ClayButton
             onClick={confirm}
             disabled={submitting}
-            className="rounded-xl bg-sky-600 px-6 py-4 text-lg font-semibold text-white shadow-sm transition hover:bg-sky-700 disabled:opacity-50"
+            size="lg"
+            className="w-full"
           >
             {submitting ? "Confirmando…" : "Confirmar turno"}
-          </button>
+          </ClayButton>
         </div>
       )}
 
@@ -486,20 +529,20 @@ export default function BookingWizard() {
       {step > 0 && (
         <button
           onClick={() => setStep(step - 1)}
-          className="mt-6 text-sm text-neutral-500 underline-offset-2 hover:underline"
+          className="mt-7 rounded-clay-sm px-4 py-2.5 font-heading text-sm font-bold text-clay-muted transition-all duration-200 hover:-translate-y-0.5 hover:bg-clay-accent/10 hover:text-clay-accent focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-clay-accent/40"
         >
           ← Volver al paso anterior
         </button>
       )}
-    </main>
+    </>
   );
 }
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-4">
-      <dt className="text-neutral-500">{label}</dt>
-      <dd className="text-right font-medium">{value}</dd>
+      <dt className="font-medium text-clay-muted">{label}</dt>
+      <dd className="text-right font-heading font-bold">{value}</dd>
     </div>
   );
 }

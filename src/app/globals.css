@@ -81,6 +81,14 @@
     inset 3px 3px 6px rgba(255, 255, 255, 1),
     inset -3px -3px 6px rgba(180, 83, 9, 0.04);
 
+  /* Convexidad en verde: WhatsApp y confirmaciones. Mismo stack que el
+     botón de acento pero con la sombra teñida del propio verde. */
+  --shadow-clay-button-emerald:
+    12px 12px 24px rgba(5, 150, 105, 0.35),
+    -8px -8px 16px rgba(255, 255, 255, 0.4),
+    inset 4px 4px 8px rgba(255, 255, 255, 0.3),
+    inset -4px -4px 8px rgba(0, 0, 0, 0.12);
+
   /* Squish del botón de acento: el hundido cremoso no funciona sobre ámbar,
      así que el press se simula con sombra interna oscura del propio tono. */
   --shadow-clay-button-pressed:
@@ -90,6 +98,11 @@
   /* Hundido: inputs y estados activos */
   --shadow-clay-pressed:
     inset 10px 10px 20px #e2d8c8, inset -10px -10px 20px #ffffff;
+
+  /* Hundido chico: para elementos finos (barra de progreso, tracks) donde
+     el blur de 20px del pressed normal se ve embarrado. */
+  --shadow-clay-pressed-sm:
+    inset 2px 2px 5px #e2d8c8, inset -2px -2px 5px #ffffff;
 
   /* Hundido sobre superficie oscura (panel de contacto) */
   --shadow-clay-pressed-dark:

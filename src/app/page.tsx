@@ -487,7 +487,7 @@ export default function Home() {
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Consultar por WhatsApp"
-        className="fixed bottom-6 right-6 z-40 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-[12px_12px_24px_rgba(5,150,105,0.35),-8px_-8px_16px_rgba(255,255,255,0.4),inset_4px_4px_8px_rgba(255,255,255,0.3),inset_-4px_-4px_8px_rgba(0,0,0,0.12)] transition-all duration-200 hover:-translate-y-1 active:scale-[0.92] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-clay-canvas"
+        className="fixed bottom-6 right-6 z-40 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-clay-button-emerald transition-all duration-200 hover:-translate-y-1 active:scale-[0.92] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-clay-canvas"
       >
         <WhatsAppIcon className="h-7 w-7" />
       </a>
