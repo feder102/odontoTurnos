@@ -24,10 +24,12 @@ npm run dev              # http://localhost:3000
 
 | Rol | Email | Contraseña |
 |---|---|---|
-| Admin | `admin@sonrisa.com` | `admin123` |
-| Recepción | `recepcion@sonrisa.com` | `recepcion123` |
-| Odontóloga (Dra. Gómez) | `lgomez@sonrisa.com` | `dentista123` |
-| Odontólogo (Dr. Ruiz) | `mruiz@sonrisa.com` | `dentista123` |
+| Admin | `admin@maxilofacialsanjuan.com` | `admin123` |
+| Recepción | `recepcion@maxilofacialsanjuan.com` | `recepcion123` |
+| Cirujano (Dr. Peñate) | `jpenate@maxilofacialsanjuan.com` | `dentista123` |
+| Ortodoncista (Dra. Alé) | `aale@maxilofacialsanjuan.com` | `dentista123` |
+| Ortodoncista (Dra. Bueno) | `mbueno@maxilofacialsanjuan.com` | `dentista123` |
+| Estética (Dr. Herrero) | `hherrero@maxilofacialsanjuan.com` | `dentista123` |
 
 ### Qué probar
 

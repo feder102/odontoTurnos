@@ -1,4 +1,4 @@
-// Seed: consultorio con 3 sillones, 2 odontólogas, 6 tratamientos,
+// Seed: consultorio con 3 sillones, 4 profesionales, 6 tratamientos,
 // 10 pacientes, turnos de la semana actual, un plan de ortodoncia en curso
 // y usuarios del sistema. Credenciales de prueba en el README.
 
@@ -55,20 +55,21 @@ async function main() {
     )
   );
 
-  console.log("🦷 Odontólogas…");
+  // Equipo real de la clínica (instagram.com/maxilofacialsanjuan).
+  console.log("🦷 Equipo profesional…");
   const weekdaysFull = [1, 2, 3, 4, 5];
-  const draGomez = await prisma.dentist.create({
+  const drPenate = await prisma.dentist.create({
     data: {
-      name: "Dra. Laura Gómez",
-      title: "Dra.",
-      firstName: "Laura",
-      lastName: "Gómez",
-      specialty: "GENERAL",
+      name: "Dr. Javier Peñate",
+      title: "Dr.",
+      firstName: "Javier",
+      lastName: "Peñate",
+      specialty: "CIRUGIA",
       color: "#0ea5e9",
-      phone: "+5491144440001",
-      email: "lgomez@sonrisa.com",
-      license: "MN 45231",
-      hiredAt: new Date("2019-03-01T00:00:00Z"),
+      phone: "+542644600001",
+      email: "jpenate@maxilofacialsanjuan.com",
+      // Sin matrícula: la clínica no la publica.
+      hiredAt: new Date("2016-03-01T00:00:00Z"),
       defaultChairId: chair1.id,
       chairs: { connect: [{ id: chair1.id }, { id: chair3.id }] }, // atiende en 2 sillones
       schedules: {
@@ -79,25 +80,73 @@ async function main() {
       },
     },
   });
-  const drRuiz = await prisma.dentist.create({
+  const draAle = await prisma.dentist.create({
     data: {
-      name: "Dr. Martín Ruiz",
-      title: "Dr.",
-      firstName: "Martín",
-      lastName: "Ruiz",
+      name: "Dra. Alejandra Alé",
+      title: "Dra.",
+      firstName: "Alejandra",
+      lastName: "Alé",
       specialty: "ORTODONCIA",
       color: "#8b5cf6",
-      phone: "+5491144440002",
-      email: "mruiz@sonrisa.com",
-      license: "MN 52890",
-      hiredAt: new Date("2021-07-15T00:00:00Z"),
+      phone: "+542644600002",
+      email: "aale@maxilofacialsanjuan.com",
+      license: "M.P. 988",
+      hiredAt: new Date("2019-07-15T00:00:00Z"),
       defaultChairId: chair2.id,
       chairs: { connect: [{ id: chair2.id }] },
       schedules: {
-        create: [1, 2, 3, 4, 5].map((weekday) => ({
+        create: weekdaysFull.map((weekday) => ({
           weekday,
           startTime: "13:00",
           endTime: "19:00",
+        })),
+      },
+    },
+  });
+  // Turno mañana en el sillón 2, complementario al de la Dra. Alé (13–19),
+  // para que compartan sillón sin pisarse.
+  const draBueno = await prisma.dentist.create({
+    data: {
+      name: "Dra. Marianela Bueno",
+      title: "Dra.",
+      firstName: "Marianela",
+      lastName: "Bueno",
+      specialty: "ORTODONCIA",
+      color: "#10b981",
+      phone: "+542644600003",
+      email: "mbueno@maxilofacialsanjuan.com",
+      license: "M.P. 957",
+      hiredAt: new Date("2021-02-01T00:00:00Z"),
+      defaultChairId: chair2.id,
+      chairs: { connect: [{ id: chair2.id }] },
+      schedules: {
+        create: weekdaysFull.map((weekday) => ({
+          weekday,
+          startTime: "09:00",
+          endTime: "13:00",
+        })),
+      },
+    },
+  });
+  const drHerrero = await prisma.dentist.create({
+    data: {
+      name: "Dr. Héctor Herrero",
+      title: "Dr.",
+      firstName: "Héctor",
+      lastName: "Herrero",
+      specialty: "GENERAL", // hace estética dental; el enum no tiene ESTETICA
+      color: "#f59e0b",
+      phone: "+542644600004",
+      email: "hherrero@maxilofacialsanjuan.com",
+      license: "M.P. 1040",
+      hiredAt: new Date("2022-09-01T00:00:00Z"),
+      defaultChairId: chair3.id,
+      chairs: { connect: [{ id: chair3.id }] },
+      schedules: {
+        create: weekdaysFull.map((weekday) => ({
+          weekday,
+          startTime: "14:00",
+          endTime: "18:00",
         })),
       },
     },
@@ -190,35 +239,35 @@ async function main() {
 
   console.log("👤 Usuarios…");
   const pw = await bcrypt.hash("admin123", 10);
+  const dentistPw = await bcrypt.hash("dentista123", 10);
   await prisma.user.create({
-    data: { email: "admin@sonrisa.com", name: "Admin", passwordHash: pw, role: "ADMIN" },
+    data: {
+      email: "admin@maxilofacialsanjuan.com",
+      name: "Admin",
+      passwordHash: pw,
+      role: "ADMIN",
+    },
   });
   await prisma.user.create({
     data: {
-      email: "recepcion@sonrisa.com",
+      email: "recepcion@maxilofacialsanjuan.com",
       name: "Carla (Recepción)",
       passwordHash: await bcrypt.hash("recepcion123", 10),
       role: "RECEPTION",
     },
   });
-  await prisma.user.create({
-    data: {
-      email: "lgomez@sonrisa.com",
-      name: "Dra. Laura Gómez",
-      passwordHash: await bcrypt.hash("dentista123", 10),
-      role: "DENTIST",
-      dentistId: draGomez.id,
-    },
-  });
-  await prisma.user.create({
-    data: {
-      email: "mruiz@sonrisa.com",
-      name: "Dr. Martín Ruiz",
-      passwordHash: await bcrypt.hash("dentista123", 10),
-      role: "DENTIST",
-      dentistId: drRuiz.id,
-    },
-  });
+  // Un login por profesional, todos con la misma clave de prueba.
+  for (const d of [drPenate, draAle, draBueno, drHerrero]) {
+    await prisma.user.create({
+      data: {
+        email: d.email!,
+        name: d.name,
+        passwordHash: dentistPw,
+        role: "DENTIST",
+        dentistId: d.id,
+      },
+    });
+  }
 
   console.log("📅 Turnos de la semana…");
   const today = todayStr(TZ);
@@ -230,7 +279,7 @@ async function main() {
     day: number; // offset desde el lunes
     time: string;
     patient: number; // índice
-    dentist: typeof draGomez;
+    dentist: typeof drPenate;
     treatment: { id: string; durationMin: number; priceCents: number; insurancePriceCents: number | null };
     chairId: string;
     status: string;
@@ -238,17 +287,17 @@ async function main() {
     paymentMethod?: string;
   };
   const week: Appt[] = [
-    { day: 0, time: "09:30", patient: 0, dentist: draGomez, treatment: limpieza, chairId: chair1.id, status: "COMPLETED", paymentStatus: "PAID", paymentMethod: "CASH" },
-    { day: 0, time: "11:00", patient: 3, dentist: draGomez, treatment: consulta, chairId: chair1.id, status: "COMPLETED", paymentStatus: "PAID", paymentMethod: "CARD_IN_PERSON" },
-    { day: 0, time: "14:00", patient: 7, dentist: drRuiz, treatment: consulta, chairId: chair2.id, status: "NO_SHOW" },
-    { day: 1, time: "10:00", patient: 4, dentist: draGomez, treatment: blanqueamiento, chairId: chair1.id, status: "COMPLETED", paymentStatus: "PAID", paymentMethod: "TRANSFER" },
-    { day: 1, time: "15:00", patient: 5, dentist: drRuiz, treatment: consulta, chairId: chair2.id, status: "COMPLETED", paymentStatus: "UNPAID" },
-    { day: 2, time: "09:00", patient: 9, dentist: draGomez, treatment: extraccion, chairId: chair1.id, status: "CONFIRMED" },
-    { day: 2, time: "16:00", patient: 2, dentist: drRuiz, treatment: consulta, chairId: chair2.id, status: "CONFIRMED", paymentStatus: "PAID", paymentMethod: "ONLINE" },
-    { day: 3, time: "10:30", patient: 1, dentist: draGomez, treatment: limpieza, chairId: chair1.id, status: "CONFIRMED" },
-    { day: 3, time: "14:30", patient: 6, dentist: drRuiz, treatment: consulta, chairId: chair2.id, status: "PENDING" },
-    { day: 4, time: "09:30", patient: 3, dentist: draGomez, treatment: endodoncia, chairId: chair1.id, status: "CONFIRMED", paymentStatus: "DEPOSIT_PAID", paymentMethod: "ONLINE" },
-    { day: 4, time: "11:00", patient: 8, dentist: draGomez, treatment: consulta, chairId: chair3.id, status: "PENDING" },
+    { day: 0, time: "09:30", patient: 0, dentist: drPenate, treatment: limpieza, chairId: chair1.id, status: "COMPLETED", paymentStatus: "PAID", paymentMethod: "CASH" },
+    { day: 0, time: "11:00", patient: 3, dentist: drPenate, treatment: consulta, chairId: chair1.id, status: "COMPLETED", paymentStatus: "PAID", paymentMethod: "CARD_IN_PERSON" },
+    { day: 0, time: "14:00", patient: 7, dentist: draAle, treatment: consulta, chairId: chair2.id, status: "NO_SHOW" },
+    { day: 1, time: "10:00", patient: 4, dentist: drPenate, treatment: blanqueamiento, chairId: chair1.id, status: "COMPLETED", paymentStatus: "PAID", paymentMethod: "TRANSFER" },
+    { day: 1, time: "15:00", patient: 5, dentist: draAle, treatment: consulta, chairId: chair2.id, status: "COMPLETED", paymentStatus: "UNPAID" },
+    { day: 2, time: "09:00", patient: 9, dentist: drPenate, treatment: extraccion, chairId: chair1.id, status: "CONFIRMED" },
+    { day: 2, time: "16:00", patient: 2, dentist: draAle, treatment: consulta, chairId: chair2.id, status: "CONFIRMED", paymentStatus: "PAID", paymentMethod: "ONLINE" },
+    { day: 3, time: "10:30", patient: 1, dentist: drPenate, treatment: limpieza, chairId: chair1.id, status: "CONFIRMED" },
+    { day: 3, time: "14:30", patient: 6, dentist: draAle, treatment: consulta, chairId: chair2.id, status: "PENDING" },
+    { day: 4, time: "09:30", patient: 3, dentist: drPenate, treatment: endodoncia, chairId: chair1.id, status: "CONFIRMED", paymentStatus: "DEPOSIT_PAID", paymentMethod: "ONLINE" },
+    { day: 4, time: "11:00", patient: 8, dentist: drPenate, treatment: consulta, chairId: chair3.id, status: "PENDING" },
   ];
 
   for (const a of week) {
@@ -303,7 +352,7 @@ async function main() {
     data: {
       patientId: valentina.id,
       treatmentId: ortodoncia.id,
-      dentistId: drRuiz.id,
+      dentistId: draAle.id,
       totalSessions: 4,
       billingMode: "PER_SESSION",
     },
@@ -318,7 +367,7 @@ async function main() {
     const appt = await prisma.appointment.create({
       data: {
         patientId: valentina.id,
-        dentistId: drRuiz.id,
+        dentistId: draAle.id,
         treatmentId: ortodoncia.id,
         chairId: chair2.id,
         startsAt,
