@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: odontoturnos_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: odontoturnos
+      POSTGRES_PASSWORD: odontoturnos
+      POSTGRES_DB: odontoturnos
+    ports:
+      # Puerto único para este proyecto (turnosAlma usa 5433) para evitar
+      # colisiones si ambos stacks corren en la misma máquina.
+      - "5432:5432"
+    volumes:
+      - odontoturnos_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odontoturnos"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    container_name: odontoturnos_app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # Sobrescribe DATABASE_URL del .env para apuntar al servicio `db` de este compose.
+      DATABASE_URL: postgresql://odontoturnos:odontoturnos@db:5432/odontoturnos
+    ports:
+      - "3000:3000"
+
+volumes:
+  odontoturnos_db_data:
